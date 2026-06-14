@@ -1,11 +1,16 @@
 import { CalendarClock, MapPin, ScanLine } from "lucide-react";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { QRCodeSVG } from "qrcode.react";
 import type { EventRecord } from "@/lib/types";
 import { appUrl, formatDateTime } from "@/lib/utils";
 
-export function QrEventCard({ event }: { event: EventRecord }) {
-  const eventUrl = appUrl(`/e/${event.slug}`);
+export async function QrEventCard({ event }: { event: EventRecord }) {
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host?.startsWith("localhost") || host?.startsWith("127.") ? "http" : "https");
+  const requestOrigin = host ? `${protocol}://${host}` : undefined;
+  const eventUrl = appUrl(`/e/${event.slug}`, requestOrigin);
 
   return (
     <div className="rounded-lg border border-white/10 bg-zinc-950/75 p-5 shadow-glow">

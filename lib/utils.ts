@@ -45,8 +45,8 @@ export function normalizeToken(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9+#.\s-]/g, "");
 }
 
-export function appUrl(path = "") {
+export function appUrl(path = "", requestOrigin?: string) {
   const vercelUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
-  const root = process.env.NEXT_PUBLIC_APP_URL ?? (vercelUrl ? `https://${vercelUrl}` : "http://localhost:3000");
+  const root = process.env.NEXT_PUBLIC_APP_URL ?? requestOrigin ?? (vercelUrl ? `https://${vercelUrl}` : "http://localhost:3000");
   return `${root.replace(/\/$/, "")}${path}`;
 }

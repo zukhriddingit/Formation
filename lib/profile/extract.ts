@@ -12,20 +12,15 @@
  */
 import type { ExperienceLevel, ExtractedProfileDraft, ProfileExtraction } from "@/lib/types";
 import { extractJsonObject, isNemotronConfigured, nemotronChat } from "@/lib/ai/nemotron";
+import { positionOptions, skillOptions } from "@/lib/options";
 import { uniqueStrings } from "@/lib/utils";
 
-/** Positions the rest of the app understands. LLM output is snapped to this set. */
-export const APP_POSITIONS = [
-  "Frontend",
-  "Backend",
-  "Full-stack",
-  "Design",
-  "Product",
-  "AI/ML",
-  "Data",
-  "Mobile",
-  "Infrastructure",
-] as const;
+/** Skills and positions the rest of the app understands. */
+const APP_SKILLS = [...skillOptions] as const;
+export const APP_POSITIONS = [...positionOptions] as const;
+
+type AppSkill = (typeof APP_SKILLS)[number];
+type AppPosition = (typeof APP_POSITIONS)[number];
 
 /** Canonical skill -> aliases. A match on any alias records the canonical label. */
 const SKILL_DICTIONARY: Record<string, string[]> = {
@@ -82,19 +77,63 @@ const SKILL_DICTIONARY: Record<string, string[]> = {
   Product: ["product management", "product manager", "roadmap", "product strategy"],
   Pitch: ["pitch", "storytelling", "presentation", "demo day"],
   "User Research": ["user research", "usability", "interviews"],
+  Vercel: ["vercel"],
+  "CI/CD": ["ci/cd", "continuous integration", "github actions"],
 };
 
-/** Position -> skills/keywords that imply it. */
-const POSITION_SIGNALS: Record<(typeof APP_POSITIONS)[number], string[]> = {
-  Frontend: ["React", "Next.js", "Tailwind", "JavaScript", "TypeScript", "UI", "Animations", "frontend", "front-end"],
-  Backend: ["Node.js", "Python", "Go", "Rust", "Java", "Postgres", "SQL", "GraphQL", "Supabase", "backend", "back-end", "api"],
-  "Full-stack": ["full stack", "full-stack", "fullstack"],
-  Design: ["Figma", "UX", "UI", "Branding", "Prototyping", "designer", "design"],
-  Product: ["Product", "Pitch", "User Research", "product manager", "pm"],
-  "AI/ML": ["PyTorch", "TensorFlow", "LLMs", "Nemotron", "OpenAI", "Embeddings", "Computer Vision", "NLP", "machine learning", "ml engineer", "ai"],
-  Data: ["SQL", "Analytics", "PostHog", "Pandas", "data scientist", "data analyst", "data engineer"],
-  Mobile: ["React Native", "Flutter", "iOS", "Android", "Swift", "Kotlin", "mobile"],
-  Infrastructure: ["Docker", "Kubernetes", "AWS", "GCP", "Terraform", "devops", "infrastructure", "sre"],
+/** App skill -> concrete skills/keywords that imply it. */
+const APP_SKILL_SIGNALS: Record<AppSkill, string[]> = {
+  frontend: ["React", "Next.js", "Tailwind", "JavaScript", "TypeScript", "UI", "Animations", "HTML", "CSS", "frontend", "front-end"],
+  backend: [
+    "Node.js",
+    "Express",
+    "FastAPI",
+    "Django",
+    "Flask",
+    "Go",
+    "Rust",
+    "Java",
+    "Spring",
+    "Postgres",
+    "Supabase",
+    "GraphQL",
+    "API",
+    "backend",
+    "back-end",
+  ],
+  ML: [
+    "PyTorch",
+    "TensorFlow",
+    "LLMs",
+    "Nemotron",
+    "OpenAI",
+    "LangChain",
+    "Embeddings",
+    "Computer Vision",
+    "NLP",
+    "machine learning",
+    "deep learning",
+    "AI engineer",
+    "ML engineer",
+  ],
+  design: ["Figma", "UX", "UI", "Branding", "Prototyping", "designer", "design"],
+  product: ["Product", "User Research", "product manager", "roadmap", "strategy", "customer discovery"],
+  pitch: ["Pitch", "storytelling", "presentation", "demo day", "public speaking"],
+  payments: ["Stripe", "payments", "billing", "checkout", "fintech"],
+  deployment: ["Docker", "Kubernetes", "AWS", "GCP", "Terraform", "Vercel", "CI/CD", "devops", "deployment", "infrastructure"],
+  data: ["SQL", "Analytics", "PostHog", "Pandas", "NumPy", "data scientist", "data analyst", "data engineer", "dashboard", "ETL"],
+  mobile: ["React Native", "Flutter", "iOS", "Android", "Swift", "Kotlin", "mobile"],
+};
+
+/** App position -> app skills/concrete keywords that imply it. */
+const POSITION_SIGNALS: Record<AppPosition, string[]> = {
+  frontend: ["frontend", "React", "Next.js", "Tailwind", "JavaScript", "TypeScript", "UI", "front-end"],
+  backend: ["backend", "Node.js", "FastAPI", "Django", "Flask", "Go", "Rust", "Java", "Postgres", "Supabase", "API", "back-end"],
+  "AI/ML": ["ML", "PyTorch", "TensorFlow", "LLMs", "Embeddings", "Computer Vision", "NLP", "machine learning", "AI engineer", "ML engineer"],
+  designer: ["design", "Figma", "UX", "UI", "designer"],
+  product: ["product", "Product", "User Research", "product manager", "roadmap"],
+  pitch: ["pitch", "Pitch", "storytelling", "presentation", "demo day"],
+  "full-stack": ["full stack", "full-stack", "fullstack"],
 };
 
 /** Interest / problem-space keywords. */
@@ -119,6 +158,9 @@ const INTEREST_SIGNALS: Record<string, string[]> = {
 
 const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 const LINKEDIN_RE = /https?:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/[^\s)<>"']+/i;
+const MONTH_DATE_FRAGMENT_RE =
+  /\s*(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|sept|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+\d{4}\s*(?:[-–—]\s*(?:(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|sept|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+\d{4}|present|current|now))?/gi;
+const YEAR_RANGE_RE = /\b(?:19|20)\d{2}\b\s*[-–—]\s*(?:\b(?:19|20)\d{2}\b|present|current|now)/i;
 
 /**
  * Whole-token match that respects tech punctuation (c++, c#, next.js) and a
@@ -146,24 +188,40 @@ function detectFromDictionary(text: string, dictionary: Record<string, string[]>
   return hits;
 }
 
-function inferPositions(text: string, skills: string[]): string[] {
-  const skillSet = new Set(skills);
-  const positions: string[] = [];
+function signalScore(text: string, signals: string[]): number {
+  return signals.reduce((score, signal) => score + (matchesWord(text, signal) ? 1 : 0), 0);
+}
+
+function inferAppSkills(text: string, detailedSkills: string[]): AppSkill[] {
+  const evidence = `${text}\n${detailedSkills.join("\n")}`;
+
+  return APP_SKILLS.map((skill) => ({
+    skill,
+    score: signalScore(evidence, APP_SKILL_SIGNALS[skill]),
+  }))
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4)
+    .map(({ skill }) => skill);
+}
+
+function inferPositions(text: string, skills: string[], detailedSkills: string[] = []): string[] {
+  const evidence = `${text}\n${skills.join("\n")}\n${detailedSkills.join("\n")}`;
+  const positions: AppPosition[] = [];
 
   for (const position of APP_POSITIONS) {
-    const signals = POSITION_SIGNALS[position];
-    const matched = signals.some((signal) => skillSet.has(signal) || matchesWord(text, signal));
+    const matched = signalScore(evidence, POSITION_SIGNALS[position]) > 0;
     if (matched) {
       positions.push(position);
     }
   }
 
   // If they clearly do both frontend and backend, surface Full-stack first.
-  if (positions.includes("Frontend") && positions.includes("Backend") && !positions.includes("Full-stack")) {
-    positions.unshift("Full-stack");
+  if (positions.includes("frontend") && positions.includes("backend") && !positions.includes("full-stack")) {
+    positions.unshift("full-stack");
   }
 
-  return positions.slice(0, 4);
+  return positions.slice(0, 3);
 }
 
 function inferExperience(text: string): { level: ExperienceLevel | null; signal: string | null } {
@@ -216,16 +274,54 @@ function guessName(lines: string[], email: string | null): string | null {
   return null;
 }
 
-function synthesizeHeadline(lines: string[], positions: string[], skills: string[]): string | null {
+function sanitizeHeadline(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const firstLine = value.split(/\r?\n/)[0]?.trim() ?? "";
+  const withoutDates = firstLine
+    .replace(MONTH_DATE_FRAGMENT_RE, " ")
+    .replace(YEAR_RANGE_RE, " ")
+    .replace(/\s+/g, " ")
+    .replace(/\s+([,.;:])/g, "$1")
+    .replace(/[-–—|,/\s]+$/g, "")
+    .trim();
+
+  if (
+    !withoutDates ||
+    withoutDates.length > 90 ||
+    EMAIL_RE.test(withoutDates) ||
+    /https?:\/\//i.test(withoutDates) ||
+    YEAR_RANGE_RE.test(firstLine)
+  ) {
+    return null;
+  }
+
+  return withoutDates;
+}
+
+function formatRoleLabel(position: string) {
+  if (position === "AI/ML") {
+    return "AI/ML";
+  }
+  if (position === "full-stack") {
+    return "Full-stack";
+  }
+  return position.charAt(0).toUpperCase() + position.slice(1);
+}
+
+function synthesizeHeadline(lines: string[], positions: string[], detailedSkills: string[]): string | null {
   const roleLine = lines.find((line) =>
     /(engineer|developer|designer|founder|builder|scientist|manager|architect|student|lead)/i.test(line) && line.length <= 90,
   );
-  if (roleLine) {
-    return roleLine.trim();
+  const cleanRoleLine = sanitizeHeadline(roleLine ?? null);
+  if (cleanRoleLine) {
+    return cleanRoleLine;
   }
   if (positions.length > 0) {
-    const top = positions[0];
-    const tail = skills.slice(0, 2).join(" & ");
+    const top = formatRoleLabel(positions[0]);
+    const tail = detailedSkills.slice(0, 2).join(" & ");
     return tail ? `${top} player fluent in ${tail}` : `${top} player ready for kickoff`;
   }
   return null;
@@ -259,12 +355,13 @@ export function heuristicExtract({ text, linkedinUrl }: { text: string; linkedin
     .filter(Boolean);
 
   const email = cleaned.match(EMAIL_RE)?.[0] ?? null;
-  const skills = uniqueStrings(detectFromDictionary(cleaned, SKILL_DICTIONARY)).slice(0, 10);
-  const positions = inferPositions(cleaned, skills);
+  const detailedSkills = uniqueStrings(detectFromDictionary(cleaned, SKILL_DICTIONARY)).slice(0, 12);
+  const skills = inferAppSkills(cleaned, detailedSkills);
+  const positions = inferPositions(cleaned, skills, detailedSkills);
   const interests = uniqueStrings(detectFromDictionary(cleaned, INTEREST_SIGNALS)).slice(0, 6);
   const { level, signal } = inferExperience(cleaned);
   const name = guessName(lines, email);
-  const headline = synthesizeHeadline(lines, positions, skills);
+  const headline = synthesizeHeadline(lines, positions, detailedSkills);
   const bio = synthesizeBio(positions, skills, level, interests);
   const linkedin = linkedinUrl?.trim() || cleaned.match(LINKEDIN_RE)?.[0] || null;
 
@@ -273,7 +370,7 @@ export function heuristicExtract({ text, linkedinUrl }: { text: string; linkedin
     notes.push("No text was provided — fill the card in manually.");
   }
   if (skills.length > 0) {
-    notes.push(`Detected ${skills.length} skill${skills.length === 1 ? "" : "s"} from keywords.`);
+    notes.push(`Detected ${skills.length} Formation skill${skills.length === 1 ? "" : "s"} from resume keywords.`);
   } else if (cleaned.trim()) {
     notes.push("No known skills matched — add yours below.");
   }
@@ -327,20 +424,57 @@ function asNullableString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function snapPositions(positions: string[], text: string): string[] {
-  const snapped = new Set<string>();
-  for (const position of positions) {
-    const direct = APP_POSITIONS.find((allowed) => allowed.toLowerCase() === position.toLowerCase());
-    if (direct) {
-      snapped.add(direct);
-      continue;
-    }
-    // Map free-form labels ("React developer") back into the app's vocabulary.
-    for (const inferred of inferPositions(`${position} ${text}`, [])) {
-      snapped.add(inferred);
-    }
+function mapAppSkill(value: string): AppSkill | null {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return null;
   }
-  return Array.from(snapped).slice(0, 4);
+  if (normalized === "ai/ml" || normalized === "ai" || normalized === "machine learning" || normalized === "ml") {
+    return "ML";
+  }
+  if (normalized === "deploy" || normalized === "devops" || normalized === "infrastructure") {
+    return "deployment";
+  }
+  return APP_SKILLS.find((skill) => skill.toLowerCase() === normalized) ?? null;
+}
+
+function mapAppPosition(value: string): AppPosition | null {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+  if (["ai", "ml", "machine learning", "ai/ml"].includes(normalized)) {
+    return "AI/ML";
+  }
+  if (["design", "designer", "ui/ux"].includes(normalized)) {
+    return "designer";
+  }
+  if (["full stack", "fullstack", "full-stack"].includes(normalized)) {
+    return "full-stack";
+  }
+  return APP_POSITIONS.find((position) => position.toLowerCase() === normalized) ?? null;
+}
+
+function normalizeAppSkills(parsedSkills: string[], text: string, detailedSkills: string[]): string[] {
+  const inferred = inferAppSkills(text, detailedSkills);
+  const evidence = `${text}\n${detailedSkills.join("\n")}`;
+  const mapped = parsedSkills
+    .map(mapAppSkill)
+    .filter((skill): skill is AppSkill => Boolean(skill))
+    .filter((skill) => inferred.includes(skill) || signalScore(evidence, APP_SKILL_SIGNALS[skill]) > 0);
+
+  return uniqueStrings([...mapped, ...inferred]).slice(0, 4);
+}
+
+function normalizeAppPositions(parsedPositions: string[], text: string, skills: string[], detailedSkills: string[]): string[] {
+  const inferred = inferPositions(text, skills, detailedSkills);
+  const evidence = `${text}\n${skills.join("\n")}\n${detailedSkills.join("\n")}`;
+  const mapped = parsedPositions
+    .map(mapAppPosition)
+    .filter((position): position is AppPosition => Boolean(position))
+    .filter((position) => inferred.includes(position) || signalScore(evidence, POSITION_SIGNALS[position]) > 0);
+
+  return uniqueStrings([...mapped, ...inferred]).slice(0, 3);
 }
 
 const EXTRACTION_SYSTEM_PROMPT = `You extract structured hackathon player profiles from resume or profile text.
@@ -348,16 +482,21 @@ Return ONLY a JSON object, no prose, with exactly these keys:
 {
   "name": string|null,
   "email": string|null,
-  "headline": string|null,         // <= 90 chars, punchy
+  "headline": string|null,         // <= 90 chars, role/identity only; no company/date ranges
   "bio": string|null,              // 1-2 sentences you write yourself, never copy raw text
-  "skills": string[],              // concrete technologies/abilities
-  "positions": string[],           // choose from: Frontend, Backend, Full-stack, Design, Product, AI/ML, Data, Mobile, Infrastructure
+  "skills": string[],              // choose ONLY from: frontend, backend, ML, design, product, pitch, payments, deployment, data, mobile
+  "positions": string[],           // choose ONLY from: frontend, backend, AI/ML, designer, product, pitch, full-stack
   "interests": string[],           // problem spaces they care about
   "experience_level": "beginner"|"intermediate"|"advanced"|null,
   "confidence": number,            // 0..1, your confidence in this extraction
   "notes": string[]                // short notes about assumptions or gaps
 }
-Never invent contact details. Never fetch URLs.`;
+Rules:
+- Select at most 4 skills and at most 3 positions.
+- Only select values directly supported by the source text. Do not mark every category.
+- If a resume has a title plus dates, keep only the title, e.g. "AI Engineer Intern" not "AI Engineer Intern Aug. 2024 - Oct. 2024".
+- Prefer current role, top project identity, or strongest hackathon role for headline.
+- Never invent contact details. Never fetch URLs.`;
 
 /**
  * Full extraction pipeline: deterministic heuristics, then (when configured)
@@ -396,8 +535,9 @@ export async function extractProfile({
 
   // Merge: prefer the LLM's richer text fields, but keep heuristics as a backstop
   // and always re-detect positions against the app vocabulary.
-  const skills = asStringArray(parsed.skills).length > 0 ? asStringArray(parsed.skills) : heuristic.skills;
-  const positions = snapPositions(asStringArray(parsed.positions), text);
+  const detailedSkills = uniqueStrings(detectFromDictionary(text, SKILL_DICTIONARY)).slice(0, 12);
+  const skills = normalizeAppSkills(asStringArray(parsed.skills), text, detailedSkills);
+  const positions = normalizeAppPositions(asStringArray(parsed.positions), text, skills, detailedSkills);
   const confidenceRaw = typeof parsed.confidence === "number" ? parsed.confidence : 0.7;
 
   // Validate the model's email against the regex; otherwise fall back to the
@@ -408,9 +548,9 @@ export async function extractProfile({
   const extraction: ProfileExtraction = {
     name: asNullableString(parsed.name) ?? heuristic.name,
     email: validatedEmail,
-    headline: asNullableString(parsed.headline) ?? heuristic.headline,
+    headline: sanitizeHeadline(asNullableString(parsed.headline)) ?? heuristic.headline,
     bio: asNullableString(parsed.bio) ?? heuristic.bio,
-    skills,
+    skills: skills.length > 0 ? skills : heuristic.skills,
     positions: positions.length > 0 ? positions : heuristic.positions,
     interests: asStringArray(parsed.interests).length > 0 ? asStringArray(parsed.interests) : heuristic.interests,
     experience_level: ["beginner", "intermediate", "advanced"].includes(String(parsed.experience_level))

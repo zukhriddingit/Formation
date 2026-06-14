@@ -30,6 +30,7 @@ type ProfileFormState = {
 type ExtractResponse = Partial<ProfileExtraction> & {
   draft?: ExtractedProfileDraft;
   error?: string;
+  mode?: "nemotron" | "heuristic" | "empty";
   wants_to_build?: string | null;
 };
 
@@ -111,6 +112,22 @@ function extractDraft(payload: ExtractResponse) {
   }
 
   return null;
+}
+
+function formatDraftNotice(payload: ExtractResponse) {
+  const source =
+    payload.mode === "nemotron"
+      ? "NVIDIA Nemotron"
+      : payload.mode === "heuristic"
+        ? "the fallback parser"
+        : "the manual draft flow";
+  const confidence = typeof payload.confidence === "number" && payload.confidence > 0 ? ` (${Math.round(payload.confidence * 100)}% confidence)` : "";
+  const notes = payload.notes
+    ?.filter((note) => note && !note.toLowerCase().includes("linkedin"))
+    .slice(0, 2)
+    .join(" ");
+
+  return `Draft applied with ${source}${confidence}. Review it before saving.${notes ? ` ${notes}` : ""}`;
 }
 
 export function OnboardingForm({
@@ -228,7 +245,7 @@ export function OnboardingForm({
 
       if (draft) {
         setForm((current) => mergeDraft(current, draft));
-        setNotice("Draft applied. Review it before saving.");
+        setNotice(formatDraftNotice(payload));
       } else {
         setNotice("No draft fields were found. You can still fill the card manually.");
       }

@@ -100,6 +100,8 @@ The migration creates the schema, enables RLS on every table, adds the atomic `d
 - 3 sample ideas
 - 2 sample teams
 
+Profile emails stay in `public.profiles`, which is only selectable by the owning authenticated user. Public board, team, and admin routes read safe player-card fields from `public.public_profiles`.
+
 When Supabase is configured, Supabase is the source of truth. Local demo fallback data is only used when Supabase environment variables are missing, and demo writes are disabled.
 
 ## Completed Core Flow
@@ -113,7 +115,7 @@ When Supabase is configured, Supabase is the source of truth. Local demo fallbac
 - Accept/reject uses the Postgres RPC `decide_join_request` so updating the request and inserting the member happen atomically.
 - Teams move to `formed` when accepted members fill `max_size`.
 - `/e/[slug]/admin` shows a QR card, player/team/role stats, common skills, recent visible join requests, and teams missing roles.
-- Public board queries do not expose profile emails.
+- Public board, team, and admin queries read `public.public_profiles` and do not expose profile emails or auth user IDs.
 - Resume extraction, Resend, Stripe, and PostHog remain as guarded hooks/stubs for separate branches.
 
 ## Demo Flow

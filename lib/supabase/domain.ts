@@ -2,9 +2,10 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 import type { EventBoard, EventRecord, Idea, JoinRequest, Profile, Team, TeamMember } from "@/lib/types";
 
 export const publicProfileColumns =
-  "id,event_id,user_id,name,linkedin_url,avatar_url,headline,bio,skills,positions,interests,wants_to_build,has_idea,looking_for_team,vibe,experience_level,created_at,updated_at";
+  "id,event_id,name,linkedin_url,avatar_url,headline,bio,skills,positions,interests,wants_to_build,has_idea,looking_for_team,vibe,experience_level,created_at,updated_at";
 
-export const ownProfileColumns = `${publicProfileColumns},email`;
+export const ownProfileColumns =
+  "id,event_id,user_id,name,email,linkedin_url,avatar_url,headline,bio,skills,positions,interests,wants_to_build,has_idea,looking_for_team,vibe,experience_level,created_at,updated_at";
 
 export const eventColumns = "id,slug,name,location,starts_at,organizer_email,premium_until,created_at";
 export const ideaColumns = "id,event_id,owner_profile_id,title,one_liner,target_user,roles_needed,tags,vibe,status,created_at,updated_at";
@@ -17,6 +18,7 @@ type FormationSupabase = SupabaseClient;
 function withoutPrivateProfileFields(profile: Profile): Profile {
   return {
     ...profile,
+    user_id: null,
     email: null,
   };
 }
@@ -62,7 +64,7 @@ export async function loadEventBoardFromSupabase(
   }
 
   const [profilesResult, ideasResult, teamsResult, requestsResult] = await Promise.all([
-    supabase.from("profiles").select(publicProfileColumns).eq("event_id", event.id).order("created_at", { ascending: true }),
+    supabase.from("public_profiles").select(publicProfileColumns).eq("event_id", event.id).order("created_at", { ascending: true }),
     supabase.from("ideas").select(ideaColumns).eq("event_id", event.id).order("created_at", { ascending: true }),
     supabase.from("teams").select(teamColumns).eq("event_id", event.id).order("created_at", { ascending: true }),
     options.includeJoinRequests

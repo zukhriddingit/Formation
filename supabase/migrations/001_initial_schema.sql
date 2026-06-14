@@ -143,6 +143,31 @@ create trigger touch_teams_updated_at
 before update on public.teams
 for each row execute function public.touch_updated_at();
 
+create or replace view public.public_profiles as
+select
+  id,
+  event_id,
+  name,
+  linkedin_url,
+  avatar_url,
+  headline,
+  bio,
+  skills,
+  positions,
+  interests,
+  wants_to_build,
+  has_idea,
+  looking_for_team,
+  vibe,
+  experience_level,
+  created_at,
+  updated_at
+from public.profiles;
+
+revoke all on public.public_profiles from public;
+revoke all on public.public_profiles from anon, authenticated;
+grant select on public.public_profiles to anon, authenticated;
+
 alter table public.events enable row level security;
 alter table public.profiles enable row level security;
 alter table public.ideas enable row level security;
@@ -157,10 +182,10 @@ on public.events for select
 to anon, authenticated
 using (true);
 
-create policy "anyone can read public profiles"
+create policy "users can read own profile"
 on public.profiles for select
-to anon, authenticated
-using (true);
+to authenticated
+using (user_id = auth.uid());
 
 create policy "users can insert own profile"
 on public.profiles for insert
@@ -245,6 +270,16 @@ with check (
       and p.event_id = teams.event_id
       and p.user_id = auth.uid()
   )
+  and (
+    teams.idea_id is null
+    or exists (
+      select 1
+      from public.ideas i
+      where i.id = teams.idea_id
+        and i.event_id = teams.event_id
+        and i.owner_profile_id = teams.owner_profile_id
+    )
+  )
 );
 
 create policy "team owners can update teams"
@@ -265,6 +300,16 @@ with check (
     where p.id = owner_profile_id
       and p.event_id = teams.event_id
       and p.user_id = auth.uid()
+  )
+  and (
+    teams.idea_id is null
+    or exists (
+      select 1
+      from public.ideas i
+      where i.id = teams.idea_id
+        and i.event_id = teams.event_id
+        and i.owner_profile_id = teams.owner_profile_id
+    )
   )
 );
 
@@ -293,8 +338,10 @@ with check (
     select 1
     from public.teams t
     join public.profiles owner_profile on owner_profile.id = t.owner_profile_id
+    join public.public_profiles member_profile on member_profile.id = team_members.profile_id
     where t.id = team_members.team_id
       and owner_profile.user_id = auth.uid()
+      and member_profile.event_id = t.event_id
   )
 );
 
@@ -315,8 +362,10 @@ with check (
     select 1
     from public.teams t
     join public.profiles owner_profile on owner_profile.id = t.owner_profile_id
+    join public.public_profiles member_profile on member_profile.id = team_members.profile_id
     where t.id = team_members.team_id
       and owner_profile.user_id = auth.uid()
+      and member_profile.event_id = t.event_id
   )
 );
 
@@ -370,6 +419,12 @@ with check (
     where t.id = join_requests.team_id
       and t.event_id = join_requests.event_id
       and t.owner_profile_id <> join_requests.requester_profile_id
+      and t.status = 'forming'
+      and (
+        select count(*)
+        from public.team_members tm_count
+        where tm_count.team_id = t.id
+      ) < t.max_size
       and not exists (
         select 1
         from public.team_members tm
@@ -447,13 +502,18 @@ begin
   from public.teams t
   join public.profiles owner_profile on owner_profile.id = t.owner_profile_id
   where t.id = v_request.team_id
-    and owner_profile.user_id = auth.uid();
+    and owner_profile.user_id = auth.uid()
+  for update of t;
 
   if not found then
     raise exception 'Only the team owner can decide this request';
   end if;
 
   if p_decision = 'accepted' then
+    if v_team.status <> 'forming' then
+      raise exception 'Team is not accepting requests';
+    end if;
+
     select count(*)
     into v_member_count
     from public.team_members

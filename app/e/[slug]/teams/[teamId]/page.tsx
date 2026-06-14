@@ -1,14 +1,45 @@
-import { ArrowLeft, BrainCircuit, Trophy, UsersRound } from "lucide-react";
+import { ArrowLeft, Share2, Trophy, UsersRound } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PlayerCard } from "@/components/player-card";
 import { RoleBadge } from "@/components/role-badge";
+import { ScoutPanel } from "@/components/scout-panel";
+import { ShareButtons } from "@/components/share-buttons";
 import { TeamActions } from "@/components/team-actions";
+import { TeamShareCard } from "@/components/share-card";
 import { VibeBadge } from "@/components/vibe-badge";
-import { getEventBoard, getTeamRoster } from "@/lib/data";
+import { getEventBoard, getTeamRoster, toClientBoard } from "@/lib/data";
 import { recommendProfilesForTeam } from "@/lib/scout/scoring";
+import { teamShareText, teamShareUrl } from "@/lib/share";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string; teamId: string }>;
+}): Promise<Metadata> {
+  const { slug, teamId } = await params;
+  const board = await getEventBoard(slug);
+  const roster = getTeamRoster(board, teamId);
+
+  if (!roster) {
+    return { title: "Team not found · Formation" };
+  }
+
+  const title = `${roster.team.name} · ${board.event.name} · Formation`;
+  const description =
+    roster.team.tagline ?? roster.idea?.one_liner ?? `${roster.team.name} is forming a squad on Formation.`;
+  const url = teamShareUrl(slug, teamId);
+
+  return {
+    title,
+    description,
+    openGraph: { title, description, url, siteName: "Formation", type: "website" },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
 
 export default async function TeamPage({
   params,
@@ -16,7 +47,9 @@ export default async function TeamPage({
   params: Promise<{ slug: string; teamId: string }>;
 }) {
   const { slug, teamId } = await params;
-  const board = await getEventBoard(slug);
+  // Sanitized: the roster + recommendations are rendered through client-graph
+  // components, so strip PII (email/user_id) before it can reach the payload.
+  const board = toClientBoard(await getEventBoard(slug));
   const roster = getTeamRoster(board, teamId);
 
   if (!roster) {
@@ -75,43 +108,52 @@ export default async function TeamPage({
           </aside>
         </section>
 
-        <section className="grid gap-8 lg:grid-cols-[1fr_420px]">
+        <section className="grid gap-8 lg:grid-cols-[1fr_420px] lg:items-start">
           <div>
             <div className="mb-4 flex items-center gap-2">
               <UsersRound className="h-5 w-5 text-pitch-500" aria-hidden="true" />
               <h2 className="text-2xl font-black text-white">Signed players</h2>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              {roster.members.map(({ profile }) => (
-                <PlayerCard key={profile.id} profile={profile} compact />
-              ))}
+              {roster.members.length > 0 ? (
+                roster.members.map(({ profile }) => <PlayerCard key={profile.id} profile={profile} compact />)
+              ) : (
+                <p className="rounded-md border border-dashed border-white/15 bg-white/[0.03] px-4 py-6 text-sm text-zinc-400">
+                  No players signed yet — the captain is still recruiting.
+                </p>
+              )}
+            </div>
+
+            <div className="mt-8">
+              <div className="mb-4 flex items-center gap-2">
+                <Share2 className="h-5 w-5 text-trophy-400" aria-hidden="true" />
+                <h2 className="text-2xl font-black text-white">Share this club</h2>
+              </div>
+              <TeamShareCard
+                team={roster.team}
+                idea={roster.idea}
+                memberCount={roster.members.length}
+                eventName={board.event.name}
+              />
+              <div className="mt-4">
+                <ShareButtons
+                  eventSlug={slug}
+                  url={teamShareUrl(slug, teamId)}
+                  shareText={teamShareText(roster.team)}
+                  kind="team"
+                />
+              </div>
             </div>
           </div>
 
-          <aside>
-            <div className="mb-4 flex items-center gap-2">
-              <BrainCircuit className="h-5 w-5 text-trophy-400" aria-hidden="true" />
-              <h2 className="text-2xl font-black text-white">Scout picks</h2>
-            </div>
-            <div className="space-y-3">
-              {recommendations.map((recommendation) => (
-                <div key={recommendation.id} className="rounded-lg border border-white/10 bg-zinc-950/75 p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="font-black text-white">{recommendation.title}</p>
-                      <p className="mt-1 text-sm text-zinc-400">{recommendation.subtitle}</p>
-                    </div>
-                    <span className="rounded-md bg-pitch-500/10 px-2 py-1 text-sm font-black text-pitch-100">{recommendation.score}</span>
-                  </div>
-                  <ul className="mt-3 space-y-1 text-sm text-zinc-400">
-                    {recommendation.reasons.map((reason) => (
-                      <li key={reason}>{reason}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </aside>
+          <ScoutPanel
+            eventSlug={slug}
+            mode="players_for_team"
+            recommendations={recommendations}
+            isTeamOwner
+            title="Scout picks"
+            subtitle={`Free agents who fit ${roster.team.name}`}
+          />
         </section>
       </div>
     </main>

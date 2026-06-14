@@ -1,6 +1,8 @@
 import { CalendarClock, MapPin, ScanLine } from "lucide-react";
 import Link from "next/link";
 import type { EventRecord } from "@/lib/types";
+import { CopyButton } from "@/components/copy-button";
+import { QrCode } from "@/components/qr-code";
 import { appUrl, formatDateTime } from "@/lib/utils";
 
 export function QrEventCard({ event }: { event: EventRecord }) {
@@ -18,21 +20,13 @@ export function QrEventCard({ event }: { event: EventRecord }) {
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-[120px_1fr] gap-4">
-        <div className="grid aspect-square grid-cols-5 gap-1 rounded-md border border-white/10 bg-white p-2">
-          {Array.from({ length: 25 }).map((_, index) => (
-            <span
-              key={index}
-              className={
-                [0, 1, 2, 5, 10, 12, 14, 18, 20, 21, 22, 24].includes(index)
-                  ? "rounded-sm bg-ink-950"
-                  : "rounded-sm bg-white"
-              }
-            />
-          ))}
-        </div>
+      <div className="mt-5 grid grid-cols-[128px_1fr] gap-4">
+        <QrCode value={eventUrl} size={128} className="overflow-hidden rounded-lg border border-white/10 bg-white p-2" />
         <div className="min-w-0">
           <p className="break-all rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-zinc-300">{eventUrl}</p>
+          <div className="mt-3">
+            <CopyButton value={eventUrl} className="px-2.5 py-1.5 text-xs" />
+          </div>
           <div className="mt-4 space-y-2 text-sm text-zinc-400">
             <p className="flex items-center gap-2">
               <CalendarClock className="h-4 w-4 text-trophy-400" aria-hidden="true" />

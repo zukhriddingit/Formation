@@ -2,3 +2,6 @@ ignoredBuiltDependencies:
   - core-js
   - sharp
   - unrs-resolver
+# Skip pnpm's pre-run dependency check. With the ignored build scripts above, that
+# sync check exits non-zero and would otherwise break `pnpm typecheck|lint|build`.
+verifyDepsBeforeRun: false

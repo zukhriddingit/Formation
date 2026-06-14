@@ -1,5 +1,8 @@
 import type { EventBoard, EventRecord, Idea, Profile, Team, TeamMember } from "@/lib/types";
 
+/** Sentinel id for the synthetic board returned for unknown slugs. */
+export const EMPTY_EVENT_ID = "00000000-0000-4000-8000-000000000000";
+
 const eventId = "11111111-1111-4111-8111-111111111111";
 
 const now = "2026-06-14T12:00:00.000Z";
@@ -285,7 +288,7 @@ export function getDemoBoard(slug: string) {
 export function createEmptyBoard(slug: string): EventBoard {
   return {
     event: {
-      id: "00000000-0000-4000-8000-000000000000",
+      id: EMPTY_EVENT_ID,
       slug,
       name: slug
         .split("-")

@@ -5,7 +5,7 @@ import { PlayerCard } from "@/components/player-card";
 import { QrEventCard } from "@/components/qr-event-card";
 import { StatCard } from "@/components/stat-card";
 import { TeamCard } from "@/components/team-card";
-import { getBoardStats, getEventBoard } from "@/lib/data";
+import { getBoardStats, getEventBoard, toClientBoard } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,7 @@ export default async function EventLandingPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const board = await getEventBoard(slug);
+  const board = toClientBoard(await getEventBoard(slug));
   const stats = getBoardStats(board);
   const featuredTeam = board.teams[0] ?? null;
   const featuredIdea = featuredTeam ? board.ideas.find((idea) => idea.id === featuredTeam.idea_id) : null;

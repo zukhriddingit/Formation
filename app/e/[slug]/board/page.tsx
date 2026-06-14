@@ -1,8 +1,10 @@
 import { ArrowLeft, Radio } from "lucide-react";
 import Link from "next/link";
 import { BoardTabs } from "@/components/board-tabs";
+import { ScoutPanel } from "@/components/scout-panel";
 import { StatCard } from "@/components/stat-card";
-import { getBoardStats, getEventBoard } from "@/lib/data";
+import { getBoardStats, getEventBoard, toClientBoard } from "@/lib/data";
+import { recommendProfilesForTeam } from "@/lib/scout/scoring";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +16,15 @@ export default async function BoardPage({
   const { slug } = await params;
   const board = await getEventBoard(slug);
   const stats = getBoardStats(board);
+
+  // Spotlight scout picks for the club with the most open roster slots.
+  const featuredTeam = [...board.teams]
+    .map((team) => ({
+      team,
+      openSlots: team.max_size - board.team_members.filter((member) => member.team_id === team.id).length,
+    }))
+    .sort((a, b) => b.openSlots - a.openSlots)[0]?.team;
+  const scoutPicks = featuredTeam ? recommendProfilesForTeam(board, featuredTeam.id, 3) : [];
 
   return (
     <main className="min-h-screen px-6 py-6 sm:px-8 lg:px-12">
@@ -39,7 +50,18 @@ export default async function BoardPage({
           <StatCard label="Ideas" value={stats.ideas} detail="Pitches on the market" icon={Radio} />
         </section>
 
-        <BoardTabs board={board} />
+        <div className="grid gap-6 lg:grid-cols-[1fr_360px] lg:items-start">
+          <BoardTabs board={toClientBoard(board)} />
+          {featuredTeam ? (
+            <ScoutPanel
+              eventSlug={slug}
+              mode="players_for_team"
+              recommendations={scoutPicks}
+              title="Scout recommends"
+              subtitle={`Free agents for ${featuredTeam.name}`}
+            />
+          ) : null}
+        </div>
       </div>
     </main>
   );

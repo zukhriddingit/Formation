@@ -1,6 +1,28 @@
-import { createEmptyBoard, getDemoBoard } from "@/lib/demo-data";
+import { createEmptyBoard, demoEvent, EMPTY_EVENT_ID, getDemoBoard } from "@/lib/demo-data";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { EventBoard, EventRecord, Idea, JoinRequest, Profile, Team, TeamMember, TeamRoster } from "@/lib/types";
+
+/** True when the board is the synthetic fallback returned for an unknown slug. */
+export function isSyntheticEvent(event: EventRecord) {
+  return event.id === EMPTY_EVENT_ID;
+}
+
+/**
+ * Strip server-only PII before handing a board to a "use client" component.
+ * Next.js serializes all client-component props into the HTML/RSC payload, so
+ * email, user_id, organizer_email, and free-text join-request messages must not
+ * cross that boundary. Bio / linkedin_url are kept — the cards render them.
+ */
+export function toClientBoard(board: EventBoard): EventBoard {
+  return {
+    event: { ...board.event, organizer_email: null },
+    profiles: board.profiles.map((profile) => ({ ...profile, email: null, user_id: null })),
+    ideas: board.ideas,
+    teams: board.teams,
+    team_members: board.team_members,
+    join_requests: board.join_requests.map((request) => ({ ...request, message: null })),
+  };
+}
 
 export async function getEventBoard(slug: string): Promise<EventBoard> {
   const fallback = getDemoBoard(slug) ?? createEmptyBoard(slug);
@@ -50,6 +72,58 @@ export async function getEventBoard(slug: string): Promise<EventBoard> {
   } catch {
     return fallback;
   }
+}
+
+/** Resolve an event id to its slug (demo mapping first, then Supabase). */
+export async function resolveEventSlug(eventId: string): Promise<string | null> {
+  if (eventId === demoEvent.id) {
+    return demoEvent.slug;
+  }
+
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return null;
+  }
+
+  try {
+    const { data } = await supabase.from("events").select("slug").eq("id", eventId).maybeSingle();
+    return (data as { slug?: string } | null)?.slug ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Load a board by event id (the scout API accepts event_id per its contract). */
+export async function getEventBoardByEventId(eventId: string): Promise<EventBoard | null> {
+  const slug = await resolveEventSlug(eventId);
+  return slug ? getEventBoard(slug) : null;
+}
+
+/** Count teams that have grown past a solo founder — a reasonable "formed" signal. */
+export function countFormedTeams(board: EventBoard) {
+  return board.teams.filter(
+    (team) => board.team_members.filter((member) => member.team_id === team.id).length >= 2,
+  ).length;
+}
+
+/**
+ * Formation funnel for the organizer dashboard, derived from board data. The
+ * "visited" stage is a lower bound (one player card per visitor who converted);
+ * the live top-of-funnel number lives in PostHog (`event_page_viewed`).
+ */
+export function getFormationFunnel(board: EventBoard) {
+  return {
+    visited: board.profiles.length,
+    profiles: board.profiles.length,
+    ideas: board.ideas.length,
+    joinRequests: board.join_requests.length,
+    teamsFormed: countFormedTeams(board),
+  };
+}
+
+export function isEventPremium(event: EventRecord, now: Date = new Date()) {
+  return Boolean(event.premium_until && new Date(event.premium_until).getTime() > now.getTime());
 }
 
 export function getBoardStats(board: EventBoard) {

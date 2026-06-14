@@ -54,7 +54,7 @@ export function BoardTabs({ board }: { board: EventBoard }) {
       {active === "players" ? (
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {board.profiles.length > 0 ? (
-            board.profiles.map((profile) => <PlayerCard key={profile.id} profile={profile} />)
+            board.profiles.map((profile) => <PlayerCard key={profile.id} profile={profile} eventSlug={board.event.slug} />)
           ) : (
             <div className="md:col-span-2 xl:col-span-3">
               <EmptyState icon={UserRoundSearch} title="No players on the board" description="The transfer window opens when the first participant creates a player card." />

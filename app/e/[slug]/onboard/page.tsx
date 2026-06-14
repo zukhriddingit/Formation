@@ -1,7 +1,7 @@
 import { ArrowLeft, IdCard } from "lucide-react";
 import Link from "next/link";
 import { OnboardingForm } from "@/components/onboarding-form";
-import { getEventBoard } from "@/lib/data";
+import { getEventBoard, toClientBoard } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +30,7 @@ export default async function OnboardPage({
             Post your positions, vibe, and build interests so the scout can match you with the right club.
           </p>
         </header>
-        <OnboardingForm eventSlug={slug} />
+        <OnboardingForm eventSlug={slug} board={toClientBoard(board)} />
       </div>
     </main>
   );

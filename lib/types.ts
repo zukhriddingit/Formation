@@ -133,3 +133,36 @@ export type ExtractedProfileDraft = {
   wants_to_build: string;
   experience_level: ExperienceLevel;
 };
+
+/**
+ * Structured draft returned by POST /api/profile/extract. This is a *draft only*
+ * — never persisted directly. The onboarding UI maps it into editable form state
+ * and the participant confirms before saving.
+ */
+export type ProfileExtraction = {
+  name: string | null;
+  email: string | null;
+  headline: string | null;
+  bio: string | null;
+  skills: string[];
+  positions: string[];
+  interests: string[];
+  experience_level: ExperienceLevel | null;
+  linkedin_url: string | null;
+  confidence: number;
+  notes: string[];
+};
+
+export type ScoutMode = "teammates_for_player" | "players_for_team" | "teams_for_player";
+
+export type ScoutRecommendation = {
+  type: "profile" | "team";
+  id: string;
+  score: number;
+  title: string;
+  subtitle: string;
+  reasons: string[];
+  matched_skills: string[];
+  missing_role_fit: string[];
+  vibe_match: boolean;
+};

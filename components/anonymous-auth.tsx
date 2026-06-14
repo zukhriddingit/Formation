@@ -1,14 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { captureClientEvent } from "@/lib/posthog";
+import { ANALYTICS_EVENTS, track } from "@/lib/analytics/events";
 
 export function AnonymousAuth({ eventSlug }: { eventSlug: string }) {
   const [status, setStatus] = useState<"idle" | "ready" | "demo">("idle");
+  const viewed = useRef(false);
 
   useEffect(() => {
     let active = true;
+
+    if (!viewed.current) {
+      viewed.current = true;
+      track(ANALYTICS_EVENTS.EVENT_PAGE_VIEWED, { event_slug: eventSlug });
+    }
 
     async function ensureSession() {
       const supabase = createSupabaseBrowserClient();
@@ -24,7 +30,7 @@ export function AnonymousAuth({ eventSlug }: { eventSlug: string }) {
 
       if (!data.session) {
         await supabase.auth.signInAnonymously();
-        await captureClientEvent("anonymous_player_signed_in", { eventSlug });
+        track(ANALYTICS_EVENTS.ANONYMOUS_USER_CREATED, { event_slug: eventSlug });
       }
 
       if (active) {

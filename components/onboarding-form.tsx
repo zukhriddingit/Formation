@@ -1,8 +1,8 @@
 "use client";
 
-import { ClipboardCheck, Loader2, Save, Sparkles, TriangleAlert } from "lucide-react";
+import { ClipboardCheck, FileUp, Loader2, Save, Sparkles, TriangleAlert, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { experienceOptions, positionOptions, skillOptions, splitTags, vibeOptions } from "@/lib/options";
 import { captureClientEvent } from "@/lib/posthog";
@@ -125,14 +125,17 @@ export function OnboardingForm({
   const [profile, setProfile] = useState<Profile | null>(null);
   const [form, setForm] = useState<ProfileFormState>(emptyForm);
   const [profileText, setProfileText] = useState("");
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const isReadOnlyDemo = !supabase;
+  const canDraft = Boolean(resumeFile || profileText.trim() || form.linkedin_url.trim());
 
   useEffect(() => {
     let active = true;
@@ -202,13 +205,18 @@ export function OnboardingForm({
     setError(null);
 
     try {
-      const response = await fetch("/api/profile/extract", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ text: profileText, linkedinUrl: form.linkedin_url }),
-      });
+      const body = new FormData();
+      if (resumeFile) {
+        body.append("file", resumeFile);
+      }
+      if (profileText.trim()) {
+        body.append("text", profileText);
+      }
+      if (form.linkedin_url.trim()) {
+        body.append("linkedinUrl", form.linkedin_url.trim());
+      }
+
+      const response = await fetch("/api/profile/extract", { method: "POST", body });
       const payload = (await response.json()) as ExtractResponse;
 
       if (payload.error) {
@@ -225,7 +233,7 @@ export function OnboardingForm({
         setNotice("No draft fields were found. You can still fill the card manually.");
       }
     } catch {
-      setError("Could not draft the player card. Paste profile text and try again.");
+      setError("Could not draft the player card. Try a PDF, DOCX, TXT, or paste profile text.");
     } finally {
       setIsExtracting(false);
     }
@@ -515,24 +523,66 @@ export function OnboardingForm({
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-trophy-400">Scout assist</p>
-            <h2 className="mt-2 text-xl font-black text-white">Draft from profile text</h2>
+            <h2 className="mt-2 text-xl font-black text-white">Draft from resume or profile text</h2>
           </div>
           <Sparkles className="h-5 w-5 text-trophy-400" aria-hidden="true" />
         </div>
         <p className="mt-3 text-sm leading-6 text-zinc-400">
-          Paste profile or resume text to draft fields. Nothing is saved until you submit the player card.
+          Upload a resume or paste profile text to draft fields. Nothing is saved until you submit the player card.
         </p>
-        <textarea
-          value={profileText}
-          onChange={(inputEvent) => setProfileText(inputEvent.target.value)}
-          rows={8}
-          className="focus-ring mt-5 w-full resize-none rounded-md border border-white/10 bg-ink-950/75 px-3 py-3 text-sm leading-6 text-white"
-          placeholder="Paste a short intro or profile summary."
-        />
+
+        <div className="mt-5">
+          <span className="text-sm font-semibold text-zinc-300">Resume upload</span>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
+            onChange={(inputEvent) => setResumeFile(inputEvent.target.files?.[0] ?? null)}
+            className="hidden"
+          />
+          {resumeFile ? (
+            <div className="mt-2 flex items-center justify-between gap-3 rounded-md border border-white/10 bg-ink-950/75 px-3 py-3 text-sm text-zinc-200">
+              <span className="min-w-0 truncate">{resumeFile.name}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setResumeFile(null);
+                  if (fileInputRef.current) {
+                    fileInputRef.current.value = "";
+                  }
+                }}
+                className="focus-ring shrink-0 rounded-md p-1 text-zinc-400 hover:text-white"
+                aria-label="Remove resume"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="focus-ring mt-2 flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-white/15 bg-ink-950/60 px-3 py-3 text-sm font-semibold text-zinc-300 hover:border-white/30 hover:text-white"
+            >
+              <FileUp className="h-4 w-4" aria-hidden="true" />
+              Upload PDF, DOCX, TXT, or MD
+            </button>
+          )}
+        </div>
+
+        <label className="mt-5 block">
+          <span className="text-sm font-semibold text-zinc-300">Or paste profile / resume text</span>
+          <textarea
+            value={profileText}
+            onChange={(inputEvent) => setProfileText(inputEvent.target.value)}
+            rows={8}
+            className="focus-ring mt-2 w-full resize-none rounded-md border border-white/10 bg-ink-950/75 px-3 py-3 text-sm leading-6 text-white"
+            placeholder="Paste a short intro or profile summary."
+          />
+        </label>
         <button
           type="button"
           onClick={extractProfile}
-          disabled={isExtracting || !profileText.trim()}
+          disabled={isExtracting || !canDraft}
           className="focus-ring mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-trophy-400 px-4 py-3 text-sm font-black text-ink-950 hover:bg-trophy-100 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isExtracting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Sparkles className="h-4 w-4" aria-hidden="true" />}

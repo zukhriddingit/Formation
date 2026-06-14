@@ -6,9 +6,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { experienceOptions, positionOptions, skillOptions, splitTags, vibeOptions } from "@/lib/options";
 import { captureClientEvent } from "@/lib/posthog";
-import { loadCurrentProfile, loadEventBySlug, ownProfileColumns } from "@/lib/supabase/domain";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import type { EventRecord, ExperienceLevel, ExtractedProfileDraft, Profile, Vibe } from "@/lib/types";
+import { loadCurrentProfile, loadEventBySlug, ownProfileColumns } from "@/lib/supabase/domain";
+import type { EventRecord, ExperienceLevel, ExtractedProfileDraft, Profile, ProfileExtraction, Vibe } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type ProfileFormState = {
@@ -25,6 +25,12 @@ type ProfileFormState = {
   looking_for_team: boolean;
   vibe: Vibe;
   experience_level: ExperienceLevel;
+};
+
+type ExtractResponse = Partial<ProfileExtraction> & {
+  draft?: ExtractedProfileDraft;
+  error?: string;
+  wants_to_build?: string | null;
 };
 
 const emptyForm: ProfileFormState = {
@@ -65,22 +71,46 @@ function formFromProfile(profile: Profile | null): ProfileFormState {
   };
 }
 
-function mergeDraft(current: ProfileFormState, draft: ExtractedProfileDraft): ProfileFormState {
+function mergeDraft(current: ProfileFormState, draft: ExtractedProfileDraft | Partial<ProfileExtraction> & { wants_to_build?: string | null }): ProfileFormState {
   return {
     ...current,
     name: draft.name || current.name,
+    email: "email" in draft ? draft.email || current.email : current.email,
+    linkedin_url: "linkedin_url" in draft ? draft.linkedin_url || current.linkedin_url : current.linkedin_url,
     headline: draft.headline || current.headline,
     bio: draft.bio || current.bio,
-    skills: draft.skills.length > 0 ? draft.skills : current.skills,
-    positions: draft.positions.length > 0 ? draft.positions : current.positions,
-    interestsText: draft.interests.length > 0 ? draft.interests.join(", ") : current.interestsText,
+    skills: draft.skills && draft.skills.length > 0 ? draft.skills : current.skills,
+    positions: draft.positions && draft.positions.length > 0 ? draft.positions : current.positions,
+    interestsText: draft.interests && draft.interests.length > 0 ? draft.interests.join(", ") : current.interestsText,
     wants_to_build: draft.wants_to_build || current.wants_to_build,
-    experience_level: draft.experience_level,
+    experience_level: draft.experience_level ?? current.experience_level,
   };
 }
 
 function toggleValue(values: string[], value: string) {
   return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
+}
+
+function extractDraft(payload: ExtractResponse) {
+  if ("draft" in payload && payload.draft) {
+    return payload.draft;
+  }
+
+  if (
+    payload.name ||
+    payload.headline ||
+    payload.bio ||
+    payload.email ||
+    payload.linkedin_url ||
+    payload.wants_to_build ||
+    (payload.skills && payload.skills.length > 0) ||
+    (payload.positions && payload.positions.length > 0) ||
+    (payload.interests && payload.interests.length > 0)
+  ) {
+    return payload;
+  }
+
+  return null;
 }
 
 export function OnboardingForm({
@@ -169,6 +199,7 @@ export function OnboardingForm({
   async function extractProfile() {
     setIsExtracting(true);
     setNotice(null);
+    setError(null);
 
     try {
       const response = await fetch("/api/profile/extract", {
@@ -176,14 +207,25 @@ export function OnboardingForm({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ text: profileText }),
+        body: JSON.stringify({ text: profileText, linkedinUrl: form.linkedin_url }),
       });
-      const payload = (await response.json()) as { draft?: ExtractedProfileDraft };
+      const payload = (await response.json()) as ExtractResponse;
 
-      if (payload.draft) {
-        setForm((current) => mergeDraft(current, payload.draft as ExtractedProfileDraft));
-        setNotice("Draft applied. Review it before saving.");
+      if (payload.error) {
+        setError(payload.error);
+        return;
       }
+
+      const draft = extractDraft(payload);
+
+      if (draft) {
+        setForm((current) => mergeDraft(current, draft));
+        setNotice("Draft applied. Review it before saving.");
+      } else {
+        setNotice("No draft fields were found. You can still fill the card manually.");
+      }
+    } catch {
+      setError("Could not draft the player card. Paste profile text and try again.");
     } finally {
       setIsExtracting(false);
     }
@@ -478,7 +520,7 @@ export function OnboardingForm({
           <Sparkles className="h-5 w-5 text-trophy-400" aria-hidden="true" />
         </div>
         <p className="mt-3 text-sm leading-6 text-zinc-400">
-          This preserves the extraction hook for a later branch. It fills draft fields but does not save until you submit the player card.
+          Paste profile or resume text to draft fields. Nothing is saved until you submit the player card.
         </p>
         <textarea
           value={profileText}

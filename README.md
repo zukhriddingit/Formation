@@ -1,44 +1,28 @@
 # Formation
 
-Formation is the live transfer market for hackathon team formation. Participants scan a QR code, get an anonymous Supabase session, create a player card, pitch ideas as clubs, form teams, and manage transfer requests from the board.
+Formation is the live transfer market for hackathon team formation. Participants scan a real QR code, get an anonymous Supabase session, create a player card, pitch ideas as clubs, form teams, and manage transfer requests from the board.
+
+The merged app includes the core team flow plus the teammate intelligence/growth layer: scout recommendations, profile extraction hooks, share pages, admin funnel polish, guarded Resend/Stripe/PostHog integrations, and NVIDIA Nemotron fallbacks.
 
 ## Stack
 
-- Next.js App Router
-- TypeScript
-- Tailwind CSS
-- Supabase auth, database, and RLS
-- Supabase anonymous auth for QR onboarding
-- Deterministic scout scoring, with NVIDIA Nemotron env hooks ready
-- Guarded stubs for Resend, Stripe, and PostHog integration work
+- Next.js App Router, TypeScript, Tailwind CSS
+- Supabase auth, database, anonymous sign-in, RLS, and atomic join-request RPC
+- Deterministic scout scoring with optional NVIDIA Nemotron polish
+- Resend, Stripe, and PostHog integration hooks with safe demo/no-op behavior
+- Server-side QR SVG generation with `qrcode`
 
 ## Quick Start
 
-Install dependencies:
-
 ```bash
 pnpm install
-```
-
-Create local environment variables:
-
-```bash
 cp .env.example .env.local
-```
-
-Run the dev server:
-
-```bash
 pnpm dev
 ```
 
-Open the demo event:
+Open `http://localhost:3000/e/world-cup-hack`.
 
-```txt
-http://localhost:3000/e/world-cup-hack
-```
-
-If `pnpm` is not installed, the repo can still be checked with the local binaries after dependencies are installed:
+If `pnpm` is unavailable but dependencies are already installed, checks can run through local binaries:
 
 ```bash
 ./node_modules/.bin/eslint . --max-warnings=0
@@ -48,111 +32,74 @@ If `pnpm` is not installed, the repo can still be checked with the local binarie
 
 ## Environment Variables
 
-Local secrets belong in `.env.local`. Keep `.env.example` committed and never commit `.env.local`.
+Put secrets in `.env.local` locally and in Vercel Project Settings for production. Client-exposed values must start with `NEXT_PUBLIC_`; server-only secrets must not.
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 
-RESEND_API_KEY=
-
-POSTHOG_KEY=
-NEXT_PUBLIC_POSTHOG_KEY=
-
-STRIPE_SECRET_KEY=
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
-STRIPE_WEBHOOK_SECRET=
-
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 NVIDIA_API_KEY=
 NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1
 NVIDIA_MODEL=nvidia/llama-3.3-nemotron-super-49b-v1
+
+RESEND_API_KEY=
+RESEND_FROM="Formation <onboarding@resend.dev>"
+
+STRIPE_SECRET_KEY=
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+STRIPE_WEBHOOK_SECRET=
+
+POSTHOG_KEY=
+NEXT_PUBLIC_POSTHOG_KEY=
+NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 ```
 
-Client-exposed values start with `NEXT_PUBLIC_`. Server-only secrets must not use that prefix. The core profile, idea, team, and join-request flows use the Supabase anon key plus RLS, not the service role key.
-
-## Supabase Setup
+## Supabase
 
 1. Create a Supabase project.
-2. Enable anonymous sign-ins in Supabase Auth.
-3. Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to `.env.local`.
-4. Apply `supabase/migrations/001_initial_schema.sql`.
+2. Enable anonymous sign-ins in Auth.
+3. Apply `supabase/migrations/001_initial_schema.sql`.
+4. Add the Supabase public URL and anon key to Vercel.
 
-Using the Supabase CLI:
+The migration creates the schema, enables RLS, creates the `public_profiles` view so public pages do not expose profile emails, adds the atomic `decide_join_request` RPC, and seeds `world-cup-hack` with 8 players, 3 ideas, and 2 teams.
 
-```bash
-supabase link --project-ref your-project-ref
-supabase db push
-```
+Normal profile, idea, team, board, and join-request flows use the Supabase anon key plus RLS. The service-role key is only for server-only integration hooks such as webhook/email logging.
 
-Using the dashboard:
+## Main Routes
 
-1. Open SQL Editor.
-2. Paste `supabase/migrations/001_initial_schema.sql`.
-3. Run it.
-
-The migration creates the schema, enables RLS on every table, adds the atomic `decide_join_request` RPC, and seeds:
-
-- 1 event: `world-cup-hack`
-- 8 sample players with `user_id = null` and no public email addresses
-- 3 sample ideas
-- 2 sample teams
-
-Profile emails stay in `public.profiles`, which is only selectable by the owning authenticated user. Public board, team, and admin routes read safe player-card fields from `public.public_profiles`.
-
-When Supabase is configured, Supabase is the source of truth. Local demo fallback data is only used when Supabase environment variables are missing, and demo writes are disabled.
-
-## Completed Core Flow
-
-- `/e/[slug]` loads the event by slug, shows an event-not-found page for unknown slugs, and runs client-side anonymous auth bootstrap.
-- Anonymous users are routed into `/e/[slug]/onboard` when they do not have a profile for that event.
-- `/e/[slug]/onboard` creates and edits the current user's player profile with name, email, LinkedIn URL, headline, bio, skills, positions, tags, build intent, idea/team flags, vibe, and experience level.
-- `/e/[slug]/board` has Players, Clubs / Ideas, and Teams tabs with filters, create-idea, create-team, team-from-owned-idea, and request-to-join flows.
-- Join requests prevent duplicate pending requests through a partial unique index and RLS-safe insert policy.
-- `/e/[slug]/teams/[teamId]` shows the roster, owner state, pending requests for the team owner, and accept/reject controls.
-- Accept/reject uses the Postgres RPC `decide_join_request` so updating the request and inserting the member happen atomically.
-- Teams move to `formed` when accepted members fill `max_size`.
-- `/e/[slug]/admin` shows a QR card, player/team/role stats, common skills, recent visible join requests, and teams missing roles.
-- Public board, team, and admin queries read `public.public_profiles` and do not expose profile emails or auth user IDs.
-- Resume extraction, Resend, Stripe, and PostHog remain as guarded hooks/stubs for separate branches.
-
-## Demo Flow
-
-1. Visit `/e/world-cup-hack`.
-2. The browser signs in anonymously when Supabase is configured.
-3. Create a player card at `/e/world-cup-hack/onboard`.
-4. View and filter the board at `/e/world-cup-hack/board`.
-5. Create an idea.
-6. Create a team or create a team from an owned idea.
-7. In another browser/session, create a different player card and request to join the team.
-8. Return as the team owner and accept or reject the request on `/e/world-cup-hack/teams/[teamId]`.
-9. Open `/e/world-cup-hack/admin` to see dashboard stats update.
-
-## Important Routes
-
-- `/` landing page
-- `/e/[slug]` event QR destination
-- `/e/[slug]/onboard` create or edit player card
-- `/e/[slug]/board` live transfer board
-- `/e/[slug]/teams/[teamId]` team page
-- `/e/[slug]/admin` organizer dashboard
-- `/checkout/success` existing Stripe success placeholder
+- `/e/[slug]` event desk and QR destination
+- `/e/[slug]/onboard` create or edit the current user's player card
+- `/e/[slug]/board` players, ideas, teams, filters, create flows, and join requests
+- `/e/[slug]/teams/[teamId]` team page, roster, owner pending requests, accept/reject controls
+- `/e/[slug]/p/[profileId]` public player share page
+- `/e/[slug]/qr` public fullscreen QR page
+- `/e/[slug]/admin` organizer dashboard and premium/integration panels
+- `/checkout/success` Stripe checkout return page
 
 ## API Routes
 
-- `POST /api/profile/extract`
-- `POST /api/scout/recommendations`
-- `POST /api/email/team-formed`
-- `POST /api/stripe/checkout`
-- `POST /api/stripe/webhook`
+- `POST /api/profile/extract`: parses pasted text or multipart resume uploads into an editable draft; LinkedIn URLs are never scraped.
+- `POST /api/scout/recommendations`: returns deterministic profile/team recommendations, optionally polished by Nemotron.
+- `POST /api/email/team-formed`: sends or logs team intro emails through Resend.
+- `POST /api/stripe/checkout`: creates a test-mode organizer checkout session when Stripe is configured.
+- `POST /api/stripe/webhook`: marks paid sessions and unlocks event premium status.
 
-These routes remain guarded integration hooks. This branch does not implement resume extraction, Resend delivery, Stripe checkout ownership, or PostHog analytics beyond preserving existing call sites.
+## Demo Test Flow
+
+1. Visit `/e/world-cup-hack`.
+2. Anonymous auth signs in and routes new users to onboarding.
+3. Save a player card.
+4. Create an idea and a team from the board.
+5. In another browser/session, create a second player card and request to join.
+6. Return as the team owner and accept or reject on the team page.
+7. Confirm board and admin stats update.
 
 ## Verification
 
-Last verified in this branch with:
+Run before shipping:
 
 ```bash
 ./node_modules/.bin/eslint . --max-warnings=0
@@ -163,6 +110,5 @@ Last verified in this branch with:
 ## Remaining TODOs
 
 - Add real organizer authorization for `/e/[slug]/admin`.
-- Let the integrations branch complete resume extraction, Resend delivery, Stripe payments, and PostHog event design.
-- Wire NVIDIA Nemotron into richer scout recommendations when the model API contract is finalized.
-- Add end-to-end tests for two-browser join-request acceptance.
+- Add end-to-end tests for the two-browser join-request acceptance flow.
+- Configure production Resend, Stripe, PostHog, and NVIDIA credentials when those integrations are ready to demo.

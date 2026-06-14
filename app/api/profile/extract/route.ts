@@ -1,80 +1,113 @@
 import { NextResponse } from "next/server";
-import type { ExtractedProfileDraft, ExperienceLevel } from "@/lib/types";
+import { extractProfile } from "@/lib/profile/extract";
+import { extractTextFromFile, FileExtractionError, isSupportedResumeFile } from "@/lib/profile/file-text";
 
-const knownSkills = [
-  "React",
-  "Next.js",
-  "TypeScript",
-  "Supabase",
-  "Postgres",
-  "Python",
-  "OpenAI",
-  "NVIDIA NIM",
-  "Nemotron",
-  "Figma",
-  "UX",
-  "Stripe",
-  "Node.js",
-  "SQL",
-  "Analytics",
-  "PostHog",
-  "React Native",
-];
+// pdf-parse / mammoth need the Node runtime (Buffer, fs).
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-const knownPositions = ["Frontend", "Backend", "Full-stack", "Design", "Product", "AI/ML", "Data", "Mobile", "Infrastructure"];
+const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8 MB
 
-function includesToken(text: string, token: string) {
-  return text.toLowerCase().includes(token.toLowerCase());
-}
+type ExtractInput = {
+  text: string;
+  linkedinUrl: string | null;
+  fileNote: string | null;
+};
 
-function inferExperience(text: string): ExperienceLevel {
-  if (/\b(senior|lead|advanced|staff|principal|5\+|6\+|7\+)\b/i.test(text)) {
-    return "advanced";
-  }
-
-  if (/\b(beginner|first hackathon|new to|student)\b/i.test(text)) {
-    return "beginner";
-  }
-
-  return "intermediate";
-}
-
-async function readProfileText(request: Request) {
+/**
+ * Read the request in either multipart (file + fields) or JSON form.
+ * IMPORTANT: a LinkedIn URL is treated as a link only — we never fetch or scrape
+ * the page. If LinkedIn/profile *text* is pasted, that text is what we parse.
+ */
+async function readInput(request: Request): Promise<ExtractInput> {
   const contentType = request.headers.get("content-type") ?? "";
 
   if (contentType.includes("multipart/form-data")) {
     const formData = await request.formData();
-    return String(formData.get("text") ?? formData.get("profileText") ?? "");
+    const pasted = String(formData.get("text") ?? formData.get("profileText") ?? "").trim();
+    const linkedinUrl = String(formData.get("linkedinUrl") ?? formData.get("linkedin_url") ?? "").trim() || null;
+    const file = formData.get("file") ?? formData.get("resume");
+
+    let fileText = "";
+    let fileNote: string | null = null;
+
+    if (file instanceof File && file.size > 0) {
+      if (file.size > MAX_FILE_BYTES) {
+        fileNote = `"${file.name}" is larger than 8 MB — paste the relevant text instead.`;
+      } else if (!isSupportedResumeFile(file)) {
+        fileNote = `"${file.name}" isn't a supported type — upload a PDF, DOCX, or .txt.`;
+      } else {
+        try {
+          fileText = await extractTextFromFile(file);
+          if (!fileText) {
+            fileNote = `Couldn't pull any text from "${file.name}" (it may be scanned/image-only). Paste your text instead.`;
+          }
+        } catch (error) {
+          fileNote = error instanceof FileExtractionError ? error.message : `Couldn't read "${file.name}".`;
+        }
+      }
+    }
+
+    const text = [fileText, pasted].filter(Boolean).join("\n\n").trim();
+    return { text, linkedinUrl, fileNote };
   }
 
-  const payload = (await request.json().catch(() => ({}))) as { text?: string; profileText?: string };
-  return payload.text ?? payload.profileText ?? "";
+  const payload = (await request.json().catch(() => ({}))) as {
+    text?: string;
+    profileText?: string;
+    linkedinUrl?: string;
+    linkedin_url?: string;
+  };
+  return {
+    text: (payload.text ?? payload.profileText ?? "").trim(),
+    linkedinUrl: (payload.linkedinUrl ?? payload.linkedin_url ?? "").trim() || null,
+    fileNote: null,
+  };
 }
 
 export async function POST(request: Request) {
-  const text = await readProfileText(request);
-  const lines = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-  const firstLine = lines[0] ?? "";
-  const skills = knownSkills.filter((skill) => includesToken(text, skill)).slice(0, 8);
-  const positions = knownPositions.filter((position) => includesToken(text, position)).slice(0, 4);
+  let input: ExtractInput;
 
-  const draft: ExtractedProfileDraft = {
-    name: firstLine && firstLine.length <= 60 ? firstLine.replace(/^name:\s*/i, "") : "",
-    headline: lines.find((line) => /engineer|designer|founder|builder|developer|student|product|data|ml|ai/i.test(line)) ?? "Hackathon player ready to join a club",
-    bio: text ? text.slice(0, 280) : "Ready to build a focused demo with a balanced team.",
-    skills: skills.length > 0 ? skills : ["TypeScript", "Product", "Pitch"],
-    positions: positions.length > 0 ? positions : ["Full-stack", "Product"],
-    interests: ["Hackathons", "AI", "Startups"],
-    wants_to_build: lines.find((line) => /build|create|ship|make/i.test(line)) ?? "A useful product that can be demoed clearly by judging.",
-    experience_level: inferExperience(text),
-  };
+  try {
+    input = await readInput(request);
+  } catch {
+    return NextResponse.json(
+      {
+        error: "Could not read the upload. Paste your profile text and fill the card in manually.",
+      },
+      { status: 400 },
+    );
+  }
 
-  return NextResponse.json({
-    draft,
-    mode: process.env.NVIDIA_API_KEY ? "deterministic_stub_with_nemotron_ready" : "deterministic_stub",
-    todo: "Replace this deterministic parser with resume file parsing and a NVIDIA Nemotron structured extraction call when ready.",
-  });
+  // Nothing usable to parse, but still let the user proceed by hand.
+  if (!input.text && !input.linkedinUrl) {
+    return NextResponse.json(
+      {
+        name: null,
+        email: null,
+        headline: null,
+        bio: null,
+        skills: [],
+        positions: [],
+        interests: [],
+        experience_level: null,
+        linkedin_url: null,
+        confidence: 0,
+        notes: [
+          input.fileNote ?? "No resume or text was provided.",
+          "Fill the card in manually — every field is editable.",
+        ].filter(Boolean),
+        mode: "empty",
+      },
+      { status: 200 },
+    );
+  }
+
+  const { extraction, mode } = await extractProfile({ text: input.text, linkedinUrl: input.linkedinUrl });
+
+  // Surface any file-read note alongside the extraction notes.
+  const notes = input.fileNote ? [input.fileNote, ...extraction.notes] : extraction.notes;
+
+  // NOTE: raw resume text is never returned verbatim or persisted — only this draft.
+  return NextResponse.json({ ...extraction, notes, mode }, { status: 200 });
 }

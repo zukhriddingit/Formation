@@ -1,7 +1,23 @@
 import { getDemoBoard } from "@/lib/demo-data";
 import { loadEventBoardFromSupabase } from "@/lib/supabase/domain";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { EventBoard, TeamRoster } from "@/lib/types";
+import type { EventBoard, EventRecord, TeamRoster } from "@/lib/types";
+
+export function toClientBoard(board: EventBoard): EventBoard {
+  return {
+    event: { ...board.event, organizer_email: null },
+    profiles: board.profiles.map((profile) => ({ ...profile, email: null, user_id: null })),
+    ideas: board.ideas,
+    teams: board.teams,
+    team_members: board.team_members,
+    join_requests: board.join_requests.map((request) => ({ ...request, message: null })),
+    source: board.source,
+  };
+}
+
+export function isSyntheticEvent(event: EventRecord) {
+  return event.id === "00000000-0000-4000-8000-000000000000";
+}
 
 export async function getEventBoard(slug: string): Promise<EventBoard | null> {
   const demoBoard = getDemoBoard(slug);
@@ -16,6 +32,54 @@ export async function getEventBoard(slug: string): Promise<EventBoard | null> {
   } catch {
     return null;
   }
+}
+
+export async function resolveEventSlug(eventId: string): Promise<string | null> {
+  const demoBoard = getDemoBoard("world-cup-hack");
+
+  if (demoBoard?.event.id === eventId) {
+    return demoBoard.event.slug;
+  }
+
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return null;
+  }
+
+  try {
+    const { data } = await supabase.from("events").select("slug").eq("id", eventId).maybeSingle();
+    return (data as { slug?: string } | null)?.slug ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getEventBoardByEventId(eventId: string): Promise<EventBoard | null> {
+  const slug = await resolveEventSlug(eventId);
+  return slug ? getEventBoard(slug) : null;
+}
+
+export function countFormedTeams(board: EventBoard) {
+  return board.teams.filter(
+    (team) =>
+      team.status === "formed" ||
+      board.team_members.filter((member) => member.team_id === team.id).length >= 2,
+  ).length;
+}
+
+export function getFormationFunnel(board: EventBoard) {
+  return {
+    visited: board.profiles.length,
+    profiles: board.profiles.length,
+    ideas: board.ideas.length,
+    joinRequests: board.join_requests.length,
+    teamsFormed: countFormedTeams(board),
+  };
+}
+
+export function isEventPremium(event: EventRecord, now: Date = new Date()) {
+  return Boolean(event.premium_until && new Date(event.premium_until).getTime() > now.getTime());
 }
 
 export function getBoardStats(board: EventBoard) {

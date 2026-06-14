@@ -31,22 +31,32 @@ export async function POST(request: Request) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     const eventSlug = session.metadata?.eventSlug;
+    const metadataEventId = session.metadata?.event_id;
     const supabase = createSupabaseServiceClient();
 
-    if (eventSlug && supabase) {
-      const { data: scoutEvent } = await supabase.from("events").select("id").eq("slug", eventSlug).maybeSingle();
-      const premiumUntil = new Date();
-      premiumUntil.setDate(premiumUntil.getDate() + 30);
+    if ((eventSlug || metadataEventId) && supabase) {
+      let eventRowId = metadataEventId ?? null;
+      if (!eventRowId && eventSlug) {
+        const { data: scoutEvent } = await supabase.from("events").select("id").eq("slug", eventSlug).maybeSingle();
+        eventRowId = (scoutEvent as { id?: string } | null)?.id ?? null;
+      }
 
-      if (scoutEvent?.id) {
-        await supabase.from("payments").upsert({
-          event_id: scoutEvent.id,
-          stripe_checkout_session_id: session.id,
-          buyer_email: session.customer_details?.email ?? session.customer_email ?? null,
-          amount_cents: session.amount_total ?? null,
-          status: "paid",
-        });
-        await supabase.from("events").update({ premium_until: premiumUntil.toISOString() }).eq("id", scoutEvent.id);
+      if (eventRowId) {
+        // One-time Pro purchase unlocks premium for a year.
+        const premiumUntil = new Date();
+        premiumUntil.setFullYear(premiumUntil.getFullYear() + 1);
+
+        await supabase.from("payments").upsert(
+          {
+            event_id: eventRowId,
+            stripe_checkout_session_id: session.id,
+            buyer_email: session.customer_details?.email ?? session.customer_email ?? null,
+            amount_cents: session.amount_total ?? null,
+            status: "paid",
+          },
+          { onConflict: "stripe_checkout_session_id" },
+        );
+        await supabase.from("events").update({ premium_until: premiumUntil.toISOString() }).eq("id", eventRowId);
       }
     }
   }

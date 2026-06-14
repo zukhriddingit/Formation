@@ -2,15 +2,19 @@ import { ExternalLink, Radio, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import type { Profile } from "@/lib/types";
 import { cn, initials } from "@/lib/utils";
+import { CopyButton } from "@/components/copy-button";
 import { RoleBadge } from "@/components/role-badge";
 import { VibeBadge } from "@/components/vibe-badge";
+import { profileShareUrl } from "@/lib/share";
 
 export function PlayerCard({
   profile,
   compact = false,
+  eventSlug,
 }: {
   profile: Profile;
   compact?: boolean;
+  eventSlug?: string;
 }) {
   return (
     <article className="rounded-lg border border-white/10 bg-zinc-950/70 p-5 shadow-glow">
@@ -60,12 +64,21 @@ export function PlayerCard({
             </>
           )}
         </span>
-        {profile.linkedin_url ? (
-          <Link href={profile.linkedin_url} className="focus-ring inline-flex items-center gap-1 rounded-md text-xs font-semibold text-zinc-300 hover:text-white">
-            LinkedIn
-            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-          </Link>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {eventSlug && !compact ? (
+            <CopyButton
+              value={profileShareUrl(eventSlug, profile.id)}
+              label="Copy profile link"
+              className="px-2.5 py-1 text-xs"
+            />
+          ) : null}
+          {profile.linkedin_url ? (
+            <Link href={profile.linkedin_url} className="focus-ring inline-flex items-center gap-1 rounded-md text-xs font-semibold text-zinc-300 hover:text-white">
+              LinkedIn
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            </Link>
+          ) : null}
+        </div>
       </div>
     </article>
   );

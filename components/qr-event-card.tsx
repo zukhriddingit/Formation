@@ -1,14 +1,17 @@
 import { CalendarClock, MapPin, ScanLine } from "lucide-react";
-import Link from "next/link";
 import { headers } from "next/headers";
-import { QRCodeSVG } from "qrcode.react";
+import Link from "next/link";
+import { CopyButton } from "@/components/copy-button";
+import { QrCode } from "@/components/qr-code";
 import type { EventRecord } from "@/lib/types";
 import { appUrl, formatDateTime } from "@/lib/utils";
 
 export async function QrEventCard({ event }: { event: EventRecord }) {
   const requestHeaders = await headers();
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
-  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host?.startsWith("localhost") || host?.startsWith("127.") ? "http" : "https");
+  const protocol =
+    requestHeaders.get("x-forwarded-proto") ??
+    (host?.startsWith("localhost") || host?.startsWith("127.") ? "http" : "https");
   const requestOrigin = host ? `${protocol}://${host}` : undefined;
   const eventUrl = appUrl(`/e/${event.slug}`, requestOrigin);
 
@@ -25,19 +28,12 @@ export async function QrEventCard({ event }: { event: EventRecord }) {
       </div>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-[164px_1fr]">
-        <div className="flex aspect-square w-40 items-center justify-center rounded-md border border-white/10 bg-white p-2">
-          <QRCodeSVG
-            value={eventUrl}
-            size={144}
-            level="M"
-            marginSize={2}
-            bgColor="#ffffff"
-            fgColor="#050807"
-            title={`${event.name} event URL`}
-          />
-        </div>
+        <QrCode value={eventUrl} size={144} className="overflow-hidden rounded-md border border-white/10 bg-white p-2" />
         <div className="min-w-0">
           <p className="break-all rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-zinc-300">{eventUrl}</p>
+          <div className="mt-3">
+            <CopyButton value={eventUrl} className="px-2.5 py-1.5 text-xs" />
+          </div>
           <div className="mt-4 space-y-2 text-sm text-zinc-400">
             <p className="flex items-center gap-2">
               <CalendarClock className="h-4 w-4 text-trophy-400" aria-hidden="true" />

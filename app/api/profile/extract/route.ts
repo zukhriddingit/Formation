@@ -9,6 +9,8 @@ const knownSkills = [
   "Postgres",
   "Python",
   "OpenAI",
+  "NVIDIA NIM",
+  "Nemotron",
   "Figma",
   "UX",
   "Stripe",
@@ -72,7 +74,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     draft,
-    mode: process.env.OPENAI_API_KEY ? "deterministic_stub_with_openai_ready" : "deterministic_stub",
-    todo: "Replace this deterministic parser with resume file parsing and an OpenAI structured extraction call when ready.",
+    mode: process.env.NVIDIA_API_KEY ? "deterministic_stub_with_nemotron_ready" : "deterministic_stub",
+    todo: "Replace this deterministic parser with resume file parsing and a NVIDIA Nemotron structured extraction call when ready.",
   });
 }

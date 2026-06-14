@@ -2,7 +2,7 @@
 
 Formation is the live transfer market for hackathon teams. Participants scan a QR code, create a player card, pitch ideas as clubs, and use a scout recommendation engine to find balanced teammates.
 
-The starter is optimized for a working hackathon demo. It runs with local sample data immediately, then uses Supabase, Resend, PostHog, Stripe, and OpenAI as you add keys.
+The starter is optimized for a working hackathon demo. It runs with local sample data immediately, then uses Supabase, Resend, PostHog, Stripe, and NVIDIA Nemotron as you add keys.
 
 ## Stack
 
@@ -14,7 +14,7 @@ The starter is optimized for a working hackathon demo. It runs with local sample
 - Resend team intro email route
 - PostHog client/server event helpers
 - Stripe Checkout test mode route
-- Deterministic scout scoring when `OPENAI_API_KEY` is missing
+- Deterministic scout scoring when `NVIDIA_API_KEY` is missing
 
 ## Quick Start
 
@@ -62,7 +62,9 @@ STRIPE_WEBHOOK_SECRET=
 
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
-OPENAI_API_KEY=
+NVIDIA_API_KEY=
+NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1
+NVIDIA_MODEL=nvidia/llama-3.3-nemotron-super-49b-v1
 ```
 
 Client-exposed values start with `NEXT_PUBLIC_`. Server-only secrets must not use that prefix.
@@ -139,7 +141,7 @@ pnpm build
 - [x] Supabase browser and server helpers added.
 - [x] Anonymous auth bootstrap added for event QR destination.
 - [x] API route stubs added with demo-safe fallbacks.
-- [x] Deterministic scout scoring works without OpenAI.
+- [x] Deterministic scout scoring works without NVIDIA Nemotron.
 - [x] Resend and Stripe routes are guarded by env vars.
 - [x] Supabase migration includes schema, RLS, and seed data.
 - [x] `.env.example` documents required environment variables.
@@ -150,5 +152,5 @@ pnpm build
 - LinkedIn auth is not required.
 - LinkedIn is never scraped.
 - LinkedIn URL is only a player profile link field.
-- Resume/profile extraction is intentionally a deterministic stub until OpenAI extraction is added.
+- Resume/profile extraction is intentionally a deterministic stub until NVIDIA Nemotron extraction is added.
 - The app renders demo data when Supabase is not configured.

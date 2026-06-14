@@ -88,7 +88,7 @@ export default async function AdminPage({
                 ["Supabase", process.env.NEXT_PUBLIC_SUPABASE_URL ? "Configured" : "Demo fallback"],
                 ["Resend", process.env.RESEND_API_KEY ? "Configured" : "Stub mode"],
                 ["Stripe", process.env.STRIPE_SECRET_KEY ? "Configured" : "Test stub"],
-                ["OpenAI", process.env.OPENAI_API_KEY ? "Configured" : "Deterministic scout"],
+                ["NVIDIA Nemotron", process.env.NVIDIA_API_KEY ? "Configured" : "Deterministic scout"],
               ].map(([name, status]) => (
                 <div key={name} className="flex items-center justify-between rounded-md border border-white/10 bg-zinc-950/70 px-4 py-3">
                   <span className="font-semibold text-white">{name}</span>

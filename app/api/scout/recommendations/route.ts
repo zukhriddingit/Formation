@@ -17,8 +17,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       eventSlug,
       recommendations: recommendProfilesForTeam(board, payload.teamId, limit),
-      mode: process.env.OPENAI_API_KEY ? "deterministic_with_openai_available" : "deterministic",
-      todo: "Optionally blend deterministic scoring with embeddings or LLM explanations after the demo is stable.",
+      mode: process.env.NVIDIA_API_KEY ? "deterministic_with_nemotron_available" : "deterministic",
+      todo: "Optionally blend deterministic scoring with NVIDIA Nemotron explanations after the demo is stable.",
     });
   }
 
@@ -26,8 +26,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       eventSlug,
       recommendations: recommendTeamsForProfile(board, payload.profileId, limit),
-      mode: process.env.OPENAI_API_KEY ? "deterministic_with_openai_available" : "deterministic",
-      todo: "Optionally blend deterministic scoring with embeddings or LLM explanations after the demo is stable.",
+      mode: process.env.NVIDIA_API_KEY ? "deterministic_with_nemotron_available" : "deterministic",
+      todo: "Optionally blend deterministic scoring with NVIDIA Nemotron explanations after the demo is stable.",
     });
   }
 

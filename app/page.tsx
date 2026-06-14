@@ -97,7 +97,7 @@ export default function HomePage() {
             },
             {
               title: "Scout matching",
-              body: "Deterministic scoring works even before OpenAI is configured.",
+              body: "Deterministic scoring works even before NVIDIA Nemotron is configured.",
               icon: BrainCircuit,
             },
             {

@@ -1,6 +1,6 @@
-# ScoutBoard
+# Formation
 
-ScoutBoard is the live transfer market for hackathon teams. Participants scan a QR code, create a player card, pitch ideas as clubs, and use a scout recommendation engine to find balanced teammates.
+Formation is the live transfer market for hackathon teams. Participants scan a QR code, create a player card, pitch ideas as clubs, and use a scout recommendation engine to find balanced teammates.
 
 The starter is optimized for a working hackathon demo. It runs with local sample data immediately, then uses Supabase, Resend, PostHog, Stripe, and OpenAI as you add keys.
 
@@ -134,7 +134,7 @@ pnpm build
 ## Definition Of Done
 
 - [x] Next.js App Router project created with TypeScript and Tailwind.
-- [x] Dark, sporty, premium ScoutBoard UI.
+- [x] Dark, sporty, premium Formation UI.
 - [x] Landing page and required event routes added.
 - [x] Supabase browser and server helpers added.
 - [x] Anonymous auth bootstrap added for event QR destination.

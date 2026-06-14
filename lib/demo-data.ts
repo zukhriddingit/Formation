@@ -10,7 +10,7 @@ export const demoEvent: EventRecord = {
   name: "World Cup Hack",
   location: "Innovation Arena",
   starts_at: "2026-06-20T14:00:00.000Z",
-  organizer_email: "organizer@scoutboard.dev",
+  organizer_email: "organizer@formation.dev",
   premium_until: null,
   created_at: now,
 };
@@ -149,7 +149,7 @@ export const demoIdeas: Idea[] = [
     id: "33333333-3333-4333-8333-333333333301",
     event_id: eventId,
     owner_profile_id: demoProfiles[0].id,
-    title: "ScoutBoard",
+    title: "Formation",
     one_liner: "A live transfer market that helps hackers form balanced teams before momentum dies.",
     target_user: "Hackathon participants and organizers",
     roles_needed: ["AI/ML", "Backend", "Design"],
@@ -195,7 +195,7 @@ export const demoTeams: Team[] = [
     event_id: eventId,
     owner_profile_id: demoProfiles[0].id,
     idea_id: demoIdeas[0].id,
-    name: "ScoutBoard FC",
+    name: "Formation FC",
     tagline: "The transfer desk for balanced hackathon squads.",
     vibe: "trying-to-win",
     roles_needed: ["AI/ML", "Backend", "Design"],
@@ -291,7 +291,7 @@ export function createEmptyBoard(slug: string): EventBoard {
         .split("-")
         .filter(Boolean)
         .map((part) => `${part[0]?.toUpperCase()}${part.slice(1)}`)
-        .join(" ") || "ScoutBoard Event",
+        .join(" ") || "Formation Event",
       location: null,
       starts_at: null,
       organizer_email: null,

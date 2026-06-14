@@ -13,7 +13,7 @@ export default function HomePage() {
       <section className="stadium-grid relative px-6 py-6 sm:px-8 lg:px-12">
         <nav className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           <Link href="/" className="focus-ring rounded-md text-xl font-black tracking-wide text-white">
-            ScoutBoard
+            Formation
           </Link>
           <Link
             href="/e/world-cup-hack"
@@ -30,7 +30,7 @@ export default function HomePage() {
               <Trophy className="h-4 w-4" aria-hidden="true" />
               Live hackathon transfer market
             </p>
-            <h1 className="mt-6 text-5xl font-black leading-[1.02] text-white sm:text-7xl lg:text-8xl">ScoutBoard</h1>
+            <h1 className="mt-6 text-5xl font-black leading-[1.02] text-white sm:text-7xl lg:text-8xl">Formation</h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-300 sm:text-xl">
               Participants scan a QR code, create a player card, pitch ideas as clubs, and use the scout to form balanced teams while the transfer window is still hot.
             </p>

@@ -406,7 +406,7 @@ values (
   'World Cup Hack',
   'Innovation Arena',
   '2026-06-20 14:00:00+00',
-  'organizer@scoutboard.dev'
+  'organizer@formation.dev'
 )
 on conflict (slug) do update set
   name = excluded.name,
@@ -566,7 +566,7 @@ values
     '33333333-3333-4333-8333-333333333301',
     '11111111-1111-4111-8111-111111111111',
     '22222222-2222-4222-8222-222222222201',
-    'ScoutBoard',
+    'Formation',
     'A live transfer market that helps hackers form balanced teams before momentum dies.',
     'Hackathon participants and organizers',
     array['AI/ML', 'Backend', 'Design'],
@@ -625,7 +625,7 @@ values
     '11111111-1111-4111-8111-111111111111',
     '22222222-2222-4222-8222-222222222201',
     '33333333-3333-4333-8333-333333333301',
-    'ScoutBoard FC',
+    'Formation FC',
     'The transfer desk for balanced hackathon squads.',
     'trying-to-win',
     array['AI/ML', 'Backend', 'Design'],

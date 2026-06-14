@@ -37,7 +37,7 @@ export async function POST(request: Request) {
           currency: "usd",
           unit_amount: premiumAmountCents,
           product_data: {
-            name: "ScoutBoard organizer premium",
+            name: "Formation organizer premium",
             description: "Premium dashboard for the live transfer market.",
           },
         },

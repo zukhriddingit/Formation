@@ -27,7 +27,7 @@ export default async function EventLandingPage({
       <div className="mx-auto max-w-7xl">
         <nav className="flex flex-wrap items-center justify-between gap-4">
           <Link href="/" className="focus-ring rounded-md text-xl font-black text-white">
-            ScoutBoard
+            Formation
           </Link>
           <div className="flex flex-wrap gap-2">
             <Link href={`/e/${slug}/board`} className="focus-ring inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-bold text-white hover:bg-white/[0.1]">

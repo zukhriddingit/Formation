@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
   const resend = new Resend(process.env.RESEND_API_KEY);
   const result = await resend.emails.send({
-    from: "ScoutBoard <onboarding@resend.dev>",
+    from: "Formation <onboarding@resend.dev>",
     to: recipients,
     subject: email.subject,
     text: email.text,

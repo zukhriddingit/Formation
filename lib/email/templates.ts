@@ -23,7 +23,7 @@ export function buildTeamFormedEmail({
   const teamUrl = appUrl(`/e/${event.slug}/teams/${team.id}`);
   const subject = `${team.name} is ready for kickoff at ${event.name}`;
   const text = [
-    `${team.name} has formed on ScoutBoard.`,
+    `${team.name} has formed on Formation.`,
     team.tagline ?? "",
     "",
     "Roster:",
@@ -37,7 +37,7 @@ export function buildTeamFormedEmail({
   const html = `
     <div style="font-family: Inter, Arial, sans-serif; background: #070808; color: #f6f7f4; padding: 32px;">
       <div style="max-width: 620px; margin: 0 auto; border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 28px; background: #101313;">
-        <p style="color: #f5c64f; letter-spacing: 0.08em; text-transform: uppercase; font-size: 12px;">ScoutBoard transfer desk</p>
+        <p style="color: #f5c64f; letter-spacing: 0.08em; text-transform: uppercase; font-size: 12px;">Formation transfer desk</p>
         <h1 style="margin: 0 0 12px; font-size: 28px;">${escapeHtml(team.name)} is ready for kickoff</h1>
         <p style="color: #cbd5cf;">${escapeHtml(team.tagline ?? `${event.name} club intro`)}</p>
         <h2 style="font-size: 16px; margin-top: 24px;">Roster</h2>

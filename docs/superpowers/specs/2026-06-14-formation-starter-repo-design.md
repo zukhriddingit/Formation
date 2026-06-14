@@ -1,8 +1,8 @@
-# ScoutBoard Starter Repo Design
+# Formation Starter Repo Design
 
 ## Goal
 
-Create a production-ish starter repository for ScoutBoard, a hackathon team formation app styled like a live soccer transfer market. The app should be demo-ready with `pnpm dev`, integrate with Supabase when configured, and stay useful with local sample data while environment variables are still being filled in.
+Create a production-ish starter repository for Formation, a hackathon team formation app styled like a live soccer transfer market. The app should be demo-ready with `pnpm dev`, integrate with Supabase when configured, and stay useful with local sample data while environment variables are still being filled in.
 
 ## Scope
 
@@ -24,7 +24,7 @@ The app will include:
 The repository will use a standard Next.js App Router structure:
 
 - `app/` for pages, layouts, and route handlers.
-- `components/` for reusable ScoutBoard UI pieces.
+- `components/` for reusable Formation UI pieces.
 - `lib/` for Supabase clients, analytics, domain types, sample data, email templates, and scout scoring.
 - `supabase/migrations/` for SQL schema and RLS policy setup.
 - Root config files for TypeScript, Tailwind, ESLint, PostCSS, Next.js, and package scripts.

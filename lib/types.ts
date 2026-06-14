@@ -111,6 +111,7 @@ export type EventBoard = {
   teams: Team[];
   team_members: TeamMember[];
   join_requests: JoinRequest[];
+  source?: "supabase" | "demo";
 };
 
 export type TeamRoster = {

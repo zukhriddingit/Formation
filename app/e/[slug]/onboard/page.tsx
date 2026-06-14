@@ -1,5 +1,6 @@
 import { ArrowLeft, IdCard } from "lucide-react";
 import Link from "next/link";
+import { EventNotFound } from "@/components/event-not-found";
 import { OnboardingForm } from "@/components/onboarding-form";
 import { getEventBoard } from "@/lib/data";
 
@@ -12,6 +13,10 @@ export default async function OnboardPage({
 }) {
   const { slug } = await params;
   const board = await getEventBoard(slug);
+
+  if (!board) {
+    return <EventNotFound slug={slug} />;
+  }
 
   return (
     <main className="min-h-screen px-6 py-6 sm:px-8 lg:px-12">
@@ -30,7 +35,7 @@ export default async function OnboardPage({
             Post your positions, vibe, and build interests so the scout can match you with the right club.
           </p>
         </header>
-        <OnboardingForm eventSlug={slug} />
+        <OnboardingForm eventSlug={slug} initialEvent={board.event} />
       </div>
     </main>
   );

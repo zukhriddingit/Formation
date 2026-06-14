@@ -1,6 +1,7 @@
 import { ArrowLeft, Radio } from "lucide-react";
 import Link from "next/link";
 import { BoardTabs } from "@/components/board-tabs";
+import { EventNotFound } from "@/components/event-not-found";
 import { StatCard } from "@/components/stat-card";
 import { getBoardStats, getEventBoard } from "@/lib/data";
 
@@ -13,6 +14,11 @@ export default async function BoardPage({
 }) {
   const { slug } = await params;
   const board = await getEventBoard(slug);
+
+  if (!board) {
+    return <EventNotFound slug={slug} />;
+  }
+
   const stats = getBoardStats(board);
 
   return (

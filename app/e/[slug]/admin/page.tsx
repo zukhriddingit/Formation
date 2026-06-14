@@ -1,9 +1,11 @@
-import { ArrowLeft, ChartNoAxesCombined, CreditCard, Mail, ShieldCheck, UsersRound } from "lucide-react";
+import { ArrowLeft, ChartNoAxesCombined, Clock3, ListChecks, ShieldCheck, Trophy, UsersRound } from "lucide-react";
 import Link from "next/link";
-import { AdminCheckoutButton } from "@/components/admin-checkout-button";
+import { EventNotFound } from "@/components/event-not-found";
+import { QrEventCard } from "@/components/qr-event-card";
+import { RoleBadge } from "@/components/role-badge";
 import { StatCard } from "@/components/stat-card";
 import { getBoardStats, getEventBoard } from "@/lib/data";
-import { formatCurrency } from "@/lib/utils";
+import { getTeamMemberCount } from "@/lib/supabase/domain";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +16,23 @@ export default async function AdminPage({
 }) {
   const { slug } = await params;
   const board = await getEventBoard(slug);
+
+  if (!board) {
+    return <EventNotFound slug={slug} />;
+  }
+
   const stats = getBoardStats(board);
-  const projectedAmount = 4900;
+  const teamsFormed = board.teams.filter((team) => team.status === "formed" || getTeamMemberCount(board, team.id) >= team.max_size).length;
+  const teamsForming = board.teams.length - teamsFormed;
+  const commonSkills = Array.from(
+    board.profiles
+      .flatMap((profile) => profile.skills)
+      .reduce((counts, skill) => counts.set(skill, (counts.get(skill) ?? 0) + 1), new Map<string, number>()),
+  )
+    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+    .slice(0, 8);
+  const recentRequests = board.join_requests.slice(0, 6);
+  const teamsMissingRoles = board.teams.filter((team) => team.status !== "formed" && team.roles_needed.length > 0);
 
   return (
     <main className="min-h-screen px-6 py-6 sm:px-8 lg:px-12">
@@ -33,27 +50,20 @@ export default async function AdminPage({
             </p>
             <h1 className="mt-5 text-4xl font-black text-white sm:text-6xl">{board.event.name} command center</h1>
             <p className="mt-4 max-w-2xl text-lg leading-8 text-zinc-300">
-              Monitor the transfer window, spot unbalanced teams, and unlock premium organizer tools through Stripe test mode.
+              Monitor the transfer window, spot unbalanced teams, and keep clubs moving toward full rosters.
             </p>
           </div>
-          <div className="rounded-lg border border-white/10 bg-zinc-950/75 p-5 shadow-glow">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">Premium access</p>
-            <p className="mt-3 text-3xl font-black text-white">{formatCurrency(projectedAmount)}</p>
-            <p className="mt-2 text-sm leading-6 text-zinc-400">Checkout unlocks organizer exports, featured club placement, and transfer analytics.</p>
-            <div className="mt-5">
-              <AdminCheckoutButton eventSlug={slug} />
-            </div>
-          </div>
+          <QrEventCard event={board.event} />
         </header>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Players" value={stats.players} detail={`${stats.looking} still available`} icon={UsersRound} />
-          <StatCard label="Teams" value={stats.clubs} detail={`${stats.openTeams} forming clubs`} icon={ShieldCheck} />
+          <StatCard label="Teams forming" value={teamsForming} detail={`${teamsFormed} teams formed`} icon={Trophy} />
+          <StatCard label="Looking" value={stats.looking} detail="Players still searching" icon={ShieldCheck} />
           <StatCard label="Open positions" value={stats.openPositions} detail="Recruiting gaps to close" icon={ChartNoAxesCombined} />
-          <StatCard label="Emails" value="Stub" detail="Resend intro route ready" icon={Mail} />
         </section>
 
-        <section className="grid gap-6 py-12 lg:grid-cols-2">
+        <section className="grid gap-6 py-12 lg:grid-cols-[1fr_0.8fr]">
           <div className="rounded-lg border border-white/10 bg-white/[0.045] p-5">
             <div className="flex items-center gap-2">
               <ChartNoAxesCombined className="h-5 w-5 text-pitch-500" aria-hidden="true" />
@@ -80,21 +90,80 @@ export default async function AdminPage({
 
           <div className="rounded-lg border border-white/10 bg-white/[0.045] p-5">
             <div className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-trophy-400" aria-hidden="true" />
-              <h2 className="text-xl font-black text-white">Integration status</h2>
+              <ListChecks className="h-5 w-5 text-trophy-400" aria-hidden="true" />
+              <h2 className="text-xl font-black text-white">Most common skills</h2>
             </div>
-            <div className="mt-5 grid gap-3">
-              {[
-                ["Supabase", process.env.NEXT_PUBLIC_SUPABASE_URL ? "Configured" : "Demo fallback"],
-                ["Resend", process.env.RESEND_API_KEY ? "Configured" : "Stub mode"],
-                ["Stripe", process.env.STRIPE_SECRET_KEY ? "Configured" : "Test stub"],
-                ["NVIDIA Nemotron", process.env.NVIDIA_API_KEY ? "Configured" : "Deterministic scout"],
-              ].map(([name, status]) => (
-                <div key={name} className="flex items-center justify-between rounded-md border border-white/10 bg-zinc-950/70 px-4 py-3">
-                  <span className="font-semibold text-white">{name}</span>
-                  <span className="text-sm text-zinc-400">{status}</span>
-                </div>
-              ))}
+            <div className="mt-5 flex flex-wrap gap-2">
+              {commonSkills.length > 0 ? (
+                commonSkills.map(([skill, count]) => (
+                  <span key={skill} className="rounded-md border border-white/10 bg-zinc-950/70 px-3 py-2 text-sm font-semibold text-zinc-200">
+                    {skill} <span className="text-zinc-500">x{count}</span>
+                  </span>
+                ))
+              ) : (
+                <p className="text-sm text-zinc-400">No player skills posted yet.</p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-6 pb-14 lg:grid-cols-2">
+          <div className="rounded-lg border border-white/10 bg-white/[0.045] p-5">
+            <div className="flex items-center gap-2">
+              <Clock3 className="h-5 w-5 text-pitch-500" aria-hidden="true" />
+              <h2 className="text-xl font-black text-white">Recent join requests</h2>
+            </div>
+            <div className="mt-5 space-y-3">
+              {recentRequests.length > 0 ? (
+                recentRequests.map((request) => {
+                  const player = board.profiles.find((profile) => profile.id === request.requester_profile_id);
+                  const team = board.teams.find((item) => item.id === request.team_id);
+                  return (
+                    <div key={request.id} className="rounded-md border border-white/10 bg-zinc-950/70 p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <p className="font-bold text-white">{player?.name ?? "Unknown player"}</p>
+                        <span className="rounded-md bg-white/[0.06] px-2 py-1 text-xs font-semibold text-zinc-300">{request.status}</span>
+                      </div>
+                      <p className="mt-1 text-sm text-zinc-400">Requested {team?.name ?? "unknown team"}</p>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-zinc-400">No visible join requests yet.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-white/10 bg-white/[0.045] p-5">
+            <div className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-trophy-400" aria-hidden="true" />
+              <h2 className="text-xl font-black text-white">Teams missing roles</h2>
+            </div>
+            <div className="mt-5 space-y-3">
+              {teamsMissingRoles.length > 0 ? (
+                teamsMissingRoles.map((team) => (
+                  <div key={team.id} className="rounded-md border border-white/10 bg-zinc-950/70 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="font-bold text-white">{team.name}</p>
+                        <p className="mt-1 text-sm text-zinc-400">
+                          {getTeamMemberCount(board, team.id)}/{team.max_size} signed
+                        </p>
+                      </div>
+                      <Link href={`/e/${slug}/teams/${team.id}`} className="focus-ring rounded-md bg-pitch-500 px-3 py-2 text-sm font-black text-pitch-950 hover:bg-pitch-100">
+                        Open
+                      </Link>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {team.roles_needed.map((role) => (
+                        <RoleBadge key={role}>{role}</RoleBadge>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-zinc-400">No open role gaps right now.</p>
+              )}
             </div>
           </div>
         </section>

@@ -23,7 +23,12 @@ export function TeamCard({
         <div className="rounded-md border border-pitch-500/25 bg-pitch-500/10 p-2 text-pitch-100">
           <UsersRound className="h-5 w-5" aria-hidden="true" />
         </div>
-        <VibeBadge vibe={team.vibe} />
+        <div className="flex flex-wrap justify-end gap-2">
+          <span className="rounded-md border border-white/10 bg-white/[0.06] px-2.5 py-1 text-xs font-black uppercase tracking-[0.12em] text-zinc-300">
+            {team.status}
+          </span>
+          <VibeBadge vibe={team.vibe} />
+        </div>
       </div>
 
       <h3 className="mt-4 text-lg font-black text-white">{team.name}</h3>
@@ -43,6 +48,7 @@ export function TeamCard({
           <p className="mt-1 text-sm text-zinc-300">
             {memberCount}/{team.max_size} signed, {openSlots} open
           </p>
+          {team.roles_needed.length > 0 ? <p className="mt-1 text-xs text-zinc-500">{team.roles_needed.length} open role signals</p> : null}
         </div>
         <Link
           href={`/e/${eventSlug}/teams/${team.id}`}

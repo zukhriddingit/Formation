@@ -1,54 +1,20 @@
-import { createEmptyBoard, getDemoBoard } from "@/lib/demo-data";
+import { getDemoBoard } from "@/lib/demo-data";
+import { loadEventBoardFromSupabase } from "@/lib/supabase/domain";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { EventBoard, EventRecord, Idea, JoinRequest, Profile, Team, TeamMember, TeamRoster } from "@/lib/types";
+import type { EventBoard, TeamRoster } from "@/lib/types";
 
-export async function getEventBoard(slug: string): Promise<EventBoard> {
-  const fallback = getDemoBoard(slug) ?? createEmptyBoard(slug);
+export async function getEventBoard(slug: string): Promise<EventBoard | null> {
+  const demoBoard = getDemoBoard(slug);
   const supabase = await createSupabaseServerClient();
 
   if (!supabase) {
-    return fallback;
+    return demoBoard;
   }
 
   try {
-    const { data: event, error: eventError } = await supabase
-      .from("events")
-      .select("*")
-      .eq("slug", slug)
-      .maybeSingle();
-
-    if (eventError || !event) {
-      return fallback;
-    }
-
-    const eventRecord = event as EventRecord;
-
-    const [profilesResult, ideasResult, teamsResult, membersResult, requestsResult] = await Promise.all([
-      supabase.from("profiles").select("*").eq("event_id", eventRecord.id).order("created_at", { ascending: true }),
-      supabase.from("ideas").select("*").eq("event_id", eventRecord.id).order("created_at", { ascending: true }),
-      supabase.from("teams").select("*").eq("event_id", eventRecord.id).order("created_at", { ascending: true }),
-      supabase.from("team_members").select("*").order("created_at", { ascending: true }),
-      supabase.from("join_requests").select("*").eq("event_id", eventRecord.id).order("created_at", { ascending: false }),
-    ]);
-
-    if (profilesResult.error || ideasResult.error || teamsResult.error || membersResult.error) {
-      return fallback;
-    }
-
-    const teams = (teamsResult.data ?? []) as Team[];
-    const teamIds = new Set(teams.map((team) => team.id));
-    const teamMembers = ((membersResult.data ?? []) as TeamMember[]).filter((member) => teamIds.has(member.team_id));
-
-    return {
-      event: eventRecord,
-      profiles: (profilesResult.data ?? []) as Profile[],
-      ideas: (ideasResult.data ?? []) as Idea[],
-      teams,
-      team_members: teamMembers,
-      join_requests: requestsResult.error ? [] : ((requestsResult.data ?? []) as JoinRequest[]),
-    };
+    return await loadEventBoardFromSupabase(supabase, slug, { includeJoinRequests: true });
   } catch {
-    return fallback;
+    return null;
   }
 }
 

@@ -43,7 +43,7 @@ create table public.ideas (
   target_user text,
   roles_needed text[] default '{}',
   tags text[] default '{}',
-  vibe text,
+  vibe text check (vibe is null or vibe in ('serious', 'chill', 'beginner-friendly', 'trying-to-win')),
   status text default 'open',
   created_at timestamptz default now(),
   updated_at timestamptz default now()
@@ -56,10 +56,10 @@ create table public.teams (
   idea_id uuid references public.ideas(id) on delete set null,
   name text not null,
   tagline text,
-  vibe text,
+  vibe text check (vibe is null or vibe in ('serious', 'chill', 'beginner-friendly', 'trying-to-win')),
   roles_needed text[] default '{}',
-  max_size integer default 4,
-  status text default 'forming',
+  max_size integer default 4 check (max_size between 2 and 8),
+  status text default 'forming' check (status in ('forming', 'formed', 'closed')),
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -107,11 +107,17 @@ create table public.email_logs (
 create index profiles_event_id_idx on public.profiles(event_id);
 create index profiles_user_id_idx on public.profiles(user_id);
 create index ideas_event_id_idx on public.ideas(event_id);
+create index ideas_owner_profile_id_idx on public.ideas(owner_profile_id);
 create index teams_event_id_idx on public.teams(event_id);
+create index teams_owner_profile_id_idx on public.teams(owner_profile_id);
 create index team_members_team_id_idx on public.team_members(team_id);
 create index team_members_profile_id_idx on public.team_members(profile_id);
+create index join_requests_event_id_idx on public.join_requests(event_id);
 create index join_requests_team_id_idx on public.join_requests(team_id);
 create index join_requests_requester_profile_id_idx on public.join_requests(requester_profile_id);
+create unique index join_requests_pending_unique_idx
+  on public.join_requests(team_id, requester_profile_id)
+  where status = 'pending';
 create index payments_event_id_idx on public.payments(event_id);
 create index email_logs_team_id_idx on public.email_logs(team_id);
 
@@ -146,14 +152,14 @@ alter table public.join_requests enable row level security;
 alter table public.payments enable row level security;
 alter table public.email_logs enable row level security;
 
-create policy "authenticated users can read events"
+create policy "anyone can read event shells"
 on public.events for select
-to authenticated
+to anon, authenticated
 using (true);
 
-create policy "authenticated users can read profiles"
+create policy "anyone can read public profiles"
 on public.profiles for select
-to authenticated
+to anon, authenticated
 using (true);
 
 create policy "users can insert own profile"
@@ -172,9 +178,9 @@ on public.profiles for delete
 to authenticated
 using (user_id = auth.uid());
 
-create policy "authenticated users can read ideas"
+create policy "anyone can read ideas"
 on public.ideas for select
-to authenticated
+to anon, authenticated
 using (true);
 
 create policy "users can create ideas for own profile"
@@ -223,9 +229,9 @@ using (
   )
 );
 
-create policy "authenticated users can read teams"
+create policy "anyone can read teams"
 on public.teams for select
-to authenticated
+to anon, authenticated
 using (true);
 
 create policy "users can create teams for own profile"
@@ -274,9 +280,9 @@ using (
   )
 );
 
-create policy "authenticated users can read team members"
+create policy "anyone can read team members"
 on public.team_members for select
-to authenticated
+to anon, authenticated
 using (true);
 
 create policy "team owners can insert team members"
@@ -286,9 +292,9 @@ with check (
   exists (
     select 1
     from public.teams t
-    join public.profiles p on p.id = t.owner_profile_id
+    join public.profiles owner_profile on owner_profile.id = t.owner_profile_id
     where t.id = team_members.team_id
-      and p.user_id = auth.uid()
+      and owner_profile.user_id = auth.uid()
   )
 );
 
@@ -299,18 +305,18 @@ using (
   exists (
     select 1
     from public.teams t
-    join public.profiles p on p.id = t.owner_profile_id
+    join public.profiles owner_profile on owner_profile.id = t.owner_profile_id
     where t.id = team_members.team_id
-      and p.user_id = auth.uid()
+      and owner_profile.user_id = auth.uid()
   )
 )
 with check (
   exists (
     select 1
     from public.teams t
-    join public.profiles p on p.id = t.owner_profile_id
+    join public.profiles owner_profile on owner_profile.id = t.owner_profile_id
     where t.id = team_members.team_id
-      and p.user_id = auth.uid()
+      and owner_profile.user_id = auth.uid()
   )
 );
 
@@ -321,9 +327,9 @@ using (
   exists (
     select 1
     from public.teams t
-    join public.profiles p on p.id = t.owner_profile_id
+    join public.profiles owner_profile on owner_profile.id = t.owner_profile_id
     where t.id = team_members.team_id
-      and p.user_id = auth.uid()
+      and owner_profile.user_id = auth.uid()
   )
 );
 
@@ -333,9 +339,9 @@ to authenticated
 using (
   exists (
     select 1
-    from public.profiles p
-    where p.id = requester_profile_id
-      and p.user_id = auth.uid()
+    from public.profiles requester
+    where requester.id = requester_profile_id
+      and requester.user_id = auth.uid()
   )
   or exists (
     select 1
@@ -350,18 +356,26 @@ create policy "users can create own join requests"
 on public.join_requests for insert
 to authenticated
 with check (
-  exists (
+  status = 'pending'
+  and exists (
     select 1
-    from public.profiles p
-    where p.id = requester_profile_id
-      and p.event_id = join_requests.event_id
-      and p.user_id = auth.uid()
+    from public.profiles requester
+    where requester.id = requester_profile_id
+      and requester.event_id = join_requests.event_id
+      and requester.user_id = auth.uid()
   )
   and exists (
     select 1
     from public.teams t
     where t.id = join_requests.team_id
       and t.event_id = join_requests.event_id
+      and t.owner_profile_id <> join_requests.requester_profile_id
+      and not exists (
+        select 1
+        from public.team_members tm
+        where tm.team_id = t.id
+          and tm.profile_id = join_requests.requester_profile_id
+      )
   )
 );
 
@@ -393,11 +407,95 @@ to authenticated
 using (
   exists (
     select 1
-    from public.profiles p
-    where p.id = requester_profile_id
-      and p.user_id = auth.uid()
+    from public.profiles requester
+    where requester.id = requester_profile_id
+      and requester.user_id = auth.uid()
   )
 );
+
+create or replace function public.decide_join_request(
+  p_request_id uuid,
+  p_decision text
+)
+returns public.join_requests
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  v_request public.join_requests;
+  v_team public.teams;
+  v_member_count integer;
+begin
+  if p_decision not in ('accepted', 'rejected') then
+    raise exception 'Invalid join request decision: %', p_decision;
+  end if;
+
+  select *
+  into v_request
+  from public.join_requests
+  where id = p_request_id
+    and status = 'pending'
+  for update;
+
+  if not found then
+    raise exception 'Pending join request not found';
+  end if;
+
+  select t.*
+  into v_team
+  from public.teams t
+  join public.profiles owner_profile on owner_profile.id = t.owner_profile_id
+  where t.id = v_request.team_id
+    and owner_profile.user_id = auth.uid();
+
+  if not found then
+    raise exception 'Only the team owner can decide this request';
+  end if;
+
+  if p_decision = 'accepted' then
+    select count(*)
+    into v_member_count
+    from public.team_members
+    where team_id = v_team.id;
+
+    if v_member_count >= v_team.max_size then
+      raise exception 'Team is already full';
+    end if;
+
+    insert into public.team_members (team_id, profile_id, role)
+    values (v_team.id, v_request.requester_profile_id, null)
+    on conflict (team_id, profile_id) do nothing;
+
+    update public.join_requests
+    set status = 'accepted',
+        decided_at = now()
+    where id = v_request.id
+    returning * into v_request;
+
+    select count(*)
+    into v_member_count
+    from public.team_members
+    where team_id = v_team.id;
+
+    if v_member_count >= v_team.max_size then
+      update public.teams
+      set status = 'formed'
+      where id = v_team.id;
+    end if;
+  else
+    update public.join_requests
+    set status = 'rejected',
+        decided_at = now()
+    where id = v_request.id
+    returning * into v_request;
+  end if;
+
+  return v_request;
+end;
+$$;
+
+grant execute on function public.decide_join_request(uuid, text) to authenticated;
 
 insert into public.events (id, slug, name, location, starts_at, organizer_email)
 values (
@@ -417,6 +515,7 @@ on conflict (slug) do update set
 insert into public.profiles (
   id,
   event_id,
+  user_id,
   name,
   email,
   linkedin_url,
@@ -435,14 +534,15 @@ values
   (
     '22222222-2222-4222-8222-222222222201',
     '11111111-1111-4111-8111-111111111111',
+    null,
     'Maya Chen',
-    'maya@example.com',
+    null,
     'https://www.linkedin.com/in/mayachen',
     'Full-stack captain who ships polished demos',
     'Builds fast product loops with React, Supabase, and crisp demo storytelling.',
-    array['React', 'Next.js', 'Supabase', 'Product'],
-    array['Frontend', 'Full-stack'],
-    array['AI agents', 'Civic tech', 'Developer tools'],
+    array['frontend', 'backend', 'deployment', 'product'],
+    array['frontend', 'backend', 'full-stack'],
+    array['AI agents', 'developer tools', 'events'],
     'A scout that helps hackathon teams find missing positions quickly.',
     true,
     false,
@@ -452,14 +552,15 @@ values
   (
     '22222222-2222-4222-8222-222222222202',
     '11111111-1111-4111-8111-111111111111',
+    null,
     'Jordan Patel',
-    'jordan@example.com',
+    null,
     null,
     'Designer who turns messy concepts into clear flows',
     'Loves service design, pitch decks, and product experiences that feel ready by Sunday.',
-    array['UX', 'Figma', 'Brand', 'Pitch'],
-    array['Design', 'Product'],
-    array['Health', 'Education', 'Consumer apps'],
+    array['design', 'product', 'pitch'],
+    array['designer', 'product', 'pitch'],
+    array['health', 'education', 'consumer apps'],
     'Tools that reduce stress for first-time hackers.',
     false,
     true,
@@ -469,14 +570,15 @@ values
   (
     '22222222-2222-4222-8222-222222222203',
     '11111111-1111-4111-8111-111111111111',
+    null,
     'Sam Rivera',
-    'sam@example.com',
+    null,
     null,
     'ML midfielder with pragmatic model taste',
     'Turns ambiguous AI ideas into scoped workflows, evals, and working endpoints.',
-    array['Python', 'OpenAI', 'Embeddings', 'Evaluation'],
-    array['AI/ML', 'Backend'],
-    array['Search', 'Sports tech', 'Knowledge tools'],
+    array['ML', 'backend', 'data'],
+    array['AI/ML', 'backend'],
+    array['search', 'sports tech', 'knowledge tools'],
     'A recommendation system that explains why teammates match.',
     false,
     true,
@@ -486,14 +588,15 @@ values
   (
     '22222222-2222-4222-8222-222222222204',
     '11111111-1111-4111-8111-111111111111',
+    null,
     'Ava Brooks',
-    'ava@example.com',
+    null,
     null,
     'Backend keeper for payments, auth, and reliable APIs',
-    'Comfortable with Supabase, Stripe, email workflows, and security tradeoffs.',
-    array['Postgres', 'Stripe', 'RLS', 'Node.js'],
-    array['Backend', 'Infrastructure'],
-    array['Fintech', 'Marketplaces', 'Ops tools'],
+    'Comfortable with Supabase, payments, email workflows, and security tradeoffs.',
+    array['backend', 'payments', 'deployment'],
+    array['backend', 'full-stack'],
+    array['marketplaces', 'ops tools'],
     'A product teams can actually operate after demo day.',
     false,
     true,
@@ -503,14 +606,15 @@ values
   (
     '22222222-2222-4222-8222-222222222205',
     '11111111-1111-4111-8111-111111111111',
+    null,
     'Noah Kim',
-    'noah@example.com',
+    null,
     null,
     'Mobile striker who likes fast prototypes',
     'Ships mobile-first interfaces, maps, and playful interaction details.',
-    array['React Native', 'Maps', 'Animations', 'TypeScript'],
-    array['Mobile', 'Frontend'],
-    array['Travel', 'Sports', 'Local discovery'],
+    array['mobile', 'frontend', 'deployment'],
+    array['frontend', 'full-stack'],
+    array['travel', 'sports', 'local discovery'],
     'A live city guide for fans visiting new stadiums.',
     true,
     false,
@@ -520,21 +624,60 @@ values
   (
     '22222222-2222-4222-8222-222222222206',
     '11111111-1111-4111-8111-111111111111',
+    null,
     'Lina Okafor',
-    'lina@example.com',
+    null,
     null,
     'Data winger for dashboards and decision loops',
     'Finds the signal in event data and turns it into simple, visual workflows.',
-    array['Analytics', 'SQL', 'Charts', 'PostHog'],
-    array['Data', 'Product'],
-    array['Climate', 'Events', 'Communities'],
+    array['data', 'product', 'frontend'],
+    array['product', 'frontend'],
+    array['climate', 'events', 'communities'],
     'A dashboard that helps organizers keep teams balanced in real time.',
     false,
     true,
     'trying-to-win',
     'intermediate'
+  ),
+  (
+    '22222222-2222-4222-8222-222222222207',
+    '11111111-1111-4111-8111-111111111111',
+    null,
+    'Priya Shah',
+    null,
+    null,
+    'Pitch lead who sharpens the story under pressure',
+    'Turns technical progress into a judging narrative with clear user value.',
+    array['pitch', 'product', 'design'],
+    array['pitch', 'product'],
+    array['social impact', 'AI agents'],
+    'A Sunday-ready story for a product people understand immediately.',
+    false,
+    true,
+    'trying-to-win',
+    'intermediate'
+  ),
+  (
+    '22222222-2222-4222-8222-222222222208',
+    '11111111-1111-4111-8111-111111111111',
+    null,
+    'Ethan Wright',
+    null,
+    null,
+    'Deployment-minded builder who keeps demos online',
+    'Handles hosting, environment variables, database setup, and the final demo checklist.',
+    array['deployment', 'backend', 'data'],
+    array['backend', 'full-stack'],
+    array['infrastructure', 'developer tools'],
+    'A reliable product demo that survives judge traffic.',
+    false,
+    true,
+    'chill',
+    'intermediate'
   )
 on conflict (id) do update set
+  event_id = excluded.event_id,
+  user_id = excluded.user_id,
   name = excluded.name,
   email = excluded.email,
   linkedin_url = excluded.linkedin_url,
@@ -569,8 +712,8 @@ values
     'Formation',
     'A live transfer market that helps hackers form balanced teams before momentum dies.',
     'Hackathon participants and organizers',
-    array['AI/ML', 'Backend', 'Design'],
-    array['AI agents', 'Marketplaces', 'Events'],
+    array['AI/ML', 'backend', 'designer'],
+    array['AI agents', 'marketplaces', 'events'],
     'trying-to-win',
     'open'
   ),
@@ -581,8 +724,8 @@ values
     'FanTrail',
     'A mobile match-day guide that turns city exploration into a fan challenge.',
     'Traveling sports fans',
-    array['Design', 'Backend', 'Data'],
-    array['Sports tech', 'Travel', 'Consumer apps'],
+    array['designer', 'backend', 'data'],
+    array['sports tech', 'travel', 'consumer apps'],
     'chill',
     'open'
   ),
@@ -593,8 +736,8 @@ values
     'GreenRoom Ops',
     'A lightweight command center for organizers balancing volunteers, rooms, and teams.',
     'Hackathon organizers',
-    array['Frontend', 'Backend', 'Product'],
-    array['Ops tools', 'Events', 'Analytics'],
+    array['frontend', 'backend', 'product'],
+    array['ops tools', 'events', 'analytics'],
     'serious',
     'open'
   )
@@ -628,7 +771,7 @@ values
     'Formation FC',
     'The transfer desk for balanced hackathon squads.',
     'trying-to-win',
-    array['AI/ML', 'Backend', 'Design'],
+    array['AI/ML', 'backend', 'designer'],
     4,
     'forming'
   ),
@@ -640,19 +783,7 @@ values
     'FanTrail United',
     'City discovery for match-day supporters.',
     'chill',
-    array['Design', 'Backend', 'Data'],
-    4,
-    'forming'
-  ),
-  (
-    '44444444-4444-4444-8444-444444444403',
-    '11111111-1111-4111-8111-111111111111',
-    '22222222-2222-4222-8222-222222222206',
-    '33333333-3333-4333-8333-333333333303',
-    'GreenRoom City',
-    'Organizer visibility from kickoff to judging.',
-    'serious',
-    array['Frontend', 'Backend', 'Product'],
+    array['designer', 'backend', 'data'],
     4,
     'forming'
   )
@@ -670,25 +801,25 @@ values
     '55555555-5555-4555-8555-555555555501',
     '44444444-4444-4444-8444-444444444401',
     '22222222-2222-4222-8222-222222222201',
-    'Captain / Full-stack'
+    'Captain / full-stack'
   ),
   (
     '55555555-5555-4555-8555-555555555502',
     '44444444-4444-4444-8444-444444444401',
     '22222222-2222-4222-8222-222222222204',
-    'Backend'
+    'backend'
   ),
   (
     '55555555-5555-4555-8555-555555555503',
     '44444444-4444-4444-8444-444444444402',
     '22222222-2222-4222-8222-222222222205',
-    'Captain / Mobile'
+    'Captain / mobile'
   ),
   (
     '55555555-5555-4555-8555-555555555504',
-    '44444444-4444-4444-8444-444444444403',
-    '22222222-2222-4222-8222-222222222206',
-    'Captain / Data'
+    '44444444-4444-4444-8444-444444444402',
+    '22222222-2222-4222-8222-222222222208',
+    'deployment'
   )
 on conflict (team_id, profile_id) do update set
   role = excluded.role;

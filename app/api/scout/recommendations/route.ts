@@ -13,6 +13,10 @@ export async function POST(request: Request) {
   const board = await getEventBoard(eventSlug);
   const limit = payload.limit ?? 4;
 
+  if (!board) {
+    return NextResponse.json({ error: "Event not found." }, { status: 404 });
+  }
+
   if (payload.teamId) {
     return NextResponse.json({
       eventSlug,

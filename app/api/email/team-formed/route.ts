@@ -11,6 +11,11 @@ export async function POST(request: Request) {
   };
   const eventSlug = payload.eventSlug ?? "world-cup-hack";
   const board = await getEventBoard(eventSlug);
+
+  if (!board) {
+    return NextResponse.json({ error: "Event not found." }, { status: 404 });
+  }
+
   const teamId = payload.teamId ?? board.teams[0]?.id;
 
   if (!teamId) {

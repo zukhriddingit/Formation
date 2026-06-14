@@ -1,6 +1,7 @@
 import { ArrowRight, Lightbulb, Radio, Trophy, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { AnonymousAuth } from "@/components/anonymous-auth";
+import { EventNotFound } from "@/components/event-not-found";
 import { PlayerCard } from "@/components/player-card";
 import { QrEventCard } from "@/components/qr-event-card";
 import { StatCard } from "@/components/stat-card";
@@ -16,6 +17,11 @@ export default async function EventLandingPage({
 }) {
   const { slug } = await params;
   const board = await getEventBoard(slug);
+
+  if (!board) {
+    return <EventNotFound slug={slug} />;
+  }
+
   const stats = getBoardStats(board);
   const featuredTeam = board.teams[0] ?? null;
   const featuredIdea = featuredTeam ? board.ideas.find((idea) => idea.id === featuredTeam.idea_id) : null;

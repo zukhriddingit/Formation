@@ -46,6 +46,7 @@ export function normalizeToken(value: string) {
 }
 
 export function appUrl(path = "") {
-  const root = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const vercelUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
+  const root = process.env.NEXT_PUBLIC_APP_URL ?? (vercelUrl ? `https://${vercelUrl}` : "http://localhost:3000");
   return `${root.replace(/\/$/, "")}${path}`;
 }

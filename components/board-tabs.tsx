@@ -328,6 +328,13 @@ export function BoardTabs({ board }: { board: EventBoard }) {
       return;
     }
 
+    const memberCount = teamMemberCounts.get(team.id) ?? getTeamMemberCount(boardState, team.id);
+
+    if (team.status !== "forming" || memberCount >= team.max_size) {
+      setNotice(team.status !== "forming" ? "Roster locked." : "Team full.");
+      return;
+    }
+
     if (pendingRequestForTeam(boardState, team.id, currentProfile.id)) {
       setNotice("You already have a pending request for this team.");
       return;
@@ -364,6 +371,32 @@ export function BoardTabs({ board }: { board: EventBoard }) {
   }
 
   function renderRequestControl(team: Team) {
+    const memberCount = teamMemberCounts.get(team.id) ?? getTeamMemberCount(boardState, team.id);
+    const lockedLabel = team.status !== "forming" ? "Roster locked" : memberCount >= team.max_size ? "Team full" : null;
+
+    if (currentProfile && team.owner_profile_id === currentProfile.id) {
+      return <p className="text-sm text-zinc-400">You captain this club.</p>;
+    }
+
+    if (currentProfile && isTeamMember(boardState, team.id, currentProfile.id)) {
+      return (
+        <p className="inline-flex items-center gap-2 text-sm font-semibold text-pitch-100">
+          <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+          You are on this roster.
+        </p>
+      );
+    }
+
+    const pendingRequest = pendingRequestForTeam(boardState, team.id, currentProfile?.id);
+
+    if (pendingRequest) {
+      return <p className="text-sm font-semibold text-trophy-100">Pending transfer request sent.</p>;
+    }
+
+    if (lockedLabel) {
+      return <p className="text-sm font-semibold text-zinc-400">{lockedLabel}</p>;
+    }
+
     if (!currentProfile) {
       return (
         <Link
@@ -373,25 +406,6 @@ export function BoardTabs({ board }: { board: EventBoard }) {
           Create card to request transfer
         </Link>
       );
-    }
-
-    if (team.owner_profile_id === currentProfile.id) {
-      return <p className="text-sm text-zinc-400">You captain this club.</p>;
-    }
-
-    if (isTeamMember(boardState, team.id, currentProfile.id)) {
-      return (
-        <p className="inline-flex items-center gap-2 text-sm font-semibold text-pitch-100">
-          <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-          You are on this roster.
-        </p>
-      );
-    }
-
-    const pendingRequest = pendingRequestForTeam(boardState, team.id, currentProfile.id);
-
-    if (pendingRequest) {
-      return <p className="text-sm font-semibold text-trophy-100">Pending transfer request sent.</p>;
     }
 
     if (requestingTeamId !== team.id) {

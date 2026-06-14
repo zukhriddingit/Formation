@@ -1,5 +1,6 @@
 import { CalendarClock, MapPin, ScanLine } from "lucide-react";
 import Link from "next/link";
+import { QRCodeSVG } from "qrcode.react";
 import type { EventRecord } from "@/lib/types";
 import { appUrl, formatDateTime } from "@/lib/utils";
 
@@ -18,18 +19,17 @@ export function QrEventCard({ event }: { event: EventRecord }) {
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-[120px_1fr] gap-4">
-        <div className="grid aspect-square grid-cols-5 gap-1 rounded-md border border-white/10 bg-white p-2">
-          {Array.from({ length: 25 }).map((_, index) => (
-            <span
-              key={index}
-              className={
-                [0, 1, 2, 5, 10, 12, 14, 18, 20, 21, 22, 24].includes(index)
-                  ? "rounded-sm bg-ink-950"
-                  : "rounded-sm bg-white"
-              }
-            />
-          ))}
+      <div className="mt-5 grid gap-4 sm:grid-cols-[164px_1fr]">
+        <div className="flex aspect-square w-40 items-center justify-center rounded-md border border-white/10 bg-white p-2">
+          <QRCodeSVG
+            value={eventUrl}
+            size={144}
+            level="M"
+            marginSize={2}
+            bgColor="#ffffff"
+            fgColor="#050807"
+            title={`${event.name} event URL`}
+          />
         </div>
         <div className="min-w-0">
           <p className="break-all rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-zinc-300">{eventUrl}</p>

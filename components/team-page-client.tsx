@@ -117,6 +117,7 @@ export function TeamPageClient({
   const memberCount = team ? getTeamMemberCount(board, team.id) : 0;
   const openSlots = team ? Math.max(team.max_size - memberCount, 0) : 0;
   const isFormed = Boolean(team && (team.status === "formed" || memberCount >= team.max_size));
+  const requestClosedLabel = team ? (team.status !== "forming" ? "Roster locked" : memberCount >= team.max_size ? "Team full" : null) : null;
   const pendingRequest = team ? pendingRequestForTeam(board, team.id, currentProfile?.id) : null;
   const pendingRequests = team ? board.join_requests.filter((request) => request.team_id === team.id && request.status === "pending") : [];
   const recommendations = team ? recommendProfilesForTeam(board, team.id, 3) : [];
@@ -124,6 +125,11 @@ export function TeamPageClient({
   async function requestToJoin() {
     if (!supabase || !team || !currentProfile) {
       setError("Create your player card before requesting a transfer.");
+      return;
+    }
+
+    if (team.status !== "forming" || getTeamMemberCount(board, team.id) >= team.max_size) {
+      setNotice(team.status !== "forming" ? "Roster locked." : "Team full.");
       return;
     }
 
@@ -254,6 +260,8 @@ export function TeamPageClient({
                 </p>
               ) : pendingRequest ? (
                 <p className="text-sm font-semibold text-trophy-100">Your transfer request is pending.</p>
+              ) : requestClosedLabel ? (
+                <p className="text-sm font-semibold text-zinc-400">{requestClosedLabel}</p>
               ) : currentProfile ? (
                 <div className="space-y-3">
                   {!showRequestForm ? (

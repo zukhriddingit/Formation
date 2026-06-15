@@ -1,8 +1,9 @@
 import { ExternalLink, Radio, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import type { Profile } from "@/lib/types";
-import { cn, initials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { CopyButton } from "@/components/copy-button";
+import { ProfileAvatar } from "@/components/profile-avatar";
 import { RoleBadge } from "@/components/role-badge";
 import { VibeBadge } from "@/components/vibe-badge";
 import { profileShareUrl } from "@/lib/share";
@@ -19,9 +20,7 @@ export function PlayerCard({
   return (
     <article className="rounded-lg border border-white/10 bg-zinc-950/70 p-5 shadow-glow">
       <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-pitch-500/25 bg-pitch-500/12 text-sm font-black text-pitch-100">
-          {initials(profile.name)}
-        </div>
+        <ProfileAvatar profile={profile} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>

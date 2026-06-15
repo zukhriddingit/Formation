@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EventNotFound } from "@/components/event-not-found";
 import { PlayerCard } from "@/components/player-card";
+import { ProfileAvatar } from "@/components/profile-avatar";
 import { ScoutPanel } from "@/components/scout-panel";
 import { ShareButtons } from "@/components/share-buttons";
 import { getEventBoard, profileById, toClientBoard } from "@/lib/data";
@@ -76,7 +77,10 @@ export default async function ProfilePage({
             <UsersRound className="h-4 w-4" aria-hidden="true" />
             Player card
           </p>
-          <h1 className="mt-5 text-4xl font-black text-white sm:text-6xl">{profile.name}</h1>
+          <div className="mt-5 flex flex-wrap items-center gap-5">
+            <ProfileAvatar profile={profile} size="lg" />
+            <h1 className="text-4xl font-black text-white sm:text-6xl">{profile.name}</h1>
+          </div>
           {profile.wants_to_build ? (
             <p className="mt-4 inline-flex max-w-2xl items-center gap-2 text-lg leading-8 text-zinc-300">
               <Target className="h-5 w-5 shrink-0 text-pitch-500" aria-hidden="true" />

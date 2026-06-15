@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { PlayerCard } from "@/components/player-card";
+import { ProfileAvatar } from "@/components/profile-avatar";
 import { RoleBadge } from "@/components/role-badge";
 import { VibeBadge } from "@/components/vibe-badge";
 import { captureClientEvent } from "@/lib/posthog";
@@ -22,6 +23,10 @@ import type { EventBoard, JoinRequest, Profile, Team } from "@/lib/types";
 
 function profileName(profiles: Profile[], profileId: string) {
   return profiles.find((profile) => profile.id === profileId)?.name ?? "Unknown player";
+}
+
+function profileForId(profiles: Profile[], profileId: string) {
+  return profiles.find((profile) => profile.id === profileId) ?? null;
 }
 
 function getTeam(board: EventBoard, teamId: string) {
@@ -352,36 +357,43 @@ export function TeamPageClient({
                 </div>
                 <div className="space-y-3">
                   {pendingRequests.length > 0 ? (
-                    pendingRequests.map((request) => (
-                      <div key={request.id} className="rounded-lg border border-white/10 bg-zinc-950/75 p-4">
-                        <div className="flex flex-wrap items-start justify-between gap-4">
-                          <div>
-                            <p className="font-black text-white">{profileName(board.profiles, request.requester_profile_id)}</p>
-                            <p className="mt-1 text-sm text-zinc-400">{request.message || "No message added."}</p>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => void decideRequest(request, "accepted")}
-                              disabled={isMutating}
-                              className="focus-ring inline-flex items-center gap-1 rounded-md bg-pitch-500 px-3 py-2 text-sm font-black text-pitch-950 hover:bg-pitch-100 disabled:opacity-60"
-                            >
-                              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-                              Accept
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => void decideRequest(request, "rejected")}
-                              disabled={isMutating}
-                              className="focus-ring inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-sm font-bold text-white hover:bg-white/[0.1] disabled:opacity-60"
-                            >
-                              <XCircle className="h-4 w-4" aria-hidden="true" />
-                              Reject
-                            </button>
+                    pendingRequests.map((request) => {
+                      const requester = profileForId(board.profiles, request.requester_profile_id);
+
+                      return (
+                        <div key={request.id} className="rounded-lg border border-white/10 bg-zinc-950/75 p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div className="flex min-w-0 items-start gap-3">
+                              {requester ? <ProfileAvatar profile={requester} size="sm" /> : null}
+                              <div className="min-w-0">
+                                <p className="font-black text-white">{requester?.name ?? profileName(board.profiles, request.requester_profile_id)}</p>
+                                <p className="mt-1 text-sm text-zinc-400">{request.message || "No message added."}</p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => void decideRequest(request, "accepted")}
+                                disabled={isMutating}
+                                className="focus-ring inline-flex items-center gap-1 rounded-md bg-pitch-500 px-3 py-2 text-sm font-black text-pitch-950 hover:bg-pitch-100 disabled:opacity-60"
+                              >
+                                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                                Accept
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void decideRequest(request, "rejected")}
+                                disabled={isMutating}
+                                className="focus-ring inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-sm font-bold text-white hover:bg-white/[0.1] disabled:opacity-60"
+                              >
+                                <XCircle className="h-4 w-4" aria-hidden="true" />
+                                Reject
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <EmptyState icon={MessageSquare} title="No pending requests" description="Transfer requests for your club appear here." />
                   )}

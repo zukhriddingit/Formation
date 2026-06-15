@@ -1,11 +1,13 @@
 "use client";
 
-import { ClipboardCheck, FileUp, Loader2, Save, Sparkles, TriangleAlert, X } from "lucide-react";
+import { ClipboardCheck, FileUp, ImagePlus, Loader2, Save, Sparkles, Trash2, TriangleAlert, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
+import { ProfileAvatar } from "@/components/profile-avatar";
 import { experienceOptions, positionOptions, skillOptions, splitTags, vibeOptions } from "@/lib/options";
 import { captureClientEvent } from "@/lib/posthog";
+import { avatarMimeExtensions, MAX_AVATAR_BYTES } from "@/lib/profile/avatar";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { loadCurrentProfile, loadEventBySlug, ownProfileColumns } from "@/lib/supabase/domain";
 import type { EventRecord, ExperienceLevel, ExtractedProfileDraft, Profile, ProfileExtraction, Vibe } from "@/lib/types";
@@ -15,6 +17,7 @@ type ProfileFormState = {
   name: string;
   email: string;
   linkedin_url: string;
+  avatar_url: string;
   headline: string;
   bio: string;
   skills: string[];
@@ -38,6 +41,7 @@ const emptyForm: ProfileFormState = {
   name: "",
   email: "",
   linkedin_url: "",
+  avatar_url: "",
   headline: "",
   bio: "",
   skills: [],
@@ -59,6 +63,7 @@ function formFromProfile(profile: Profile | null): ProfileFormState {
     name: profile.name,
     email: profile.email ?? "",
     linkedin_url: profile.linkedin_url ?? "",
+    avatar_url: profile.avatar_url ?? "",
     headline: profile.headline ?? "",
     bio: profile.bio ?? "",
     skills: profile.skills,
@@ -143,12 +148,15 @@ export function OnboardingForm({
   const [form, setForm] = useState<ProfileFormState>(emptyForm);
   const [profileText, setProfileText] = useState("");
   const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const isReadOnlyDemo = !supabase;
@@ -215,6 +223,96 @@ export function OnboardingForm({
       active = false;
     };
   }, [eventSlug, supabase]);
+
+  useEffect(() => {
+    if (!avatarFile) {
+      setAvatarPreviewUrl(null);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(avatarFile);
+    setAvatarPreviewUrl(previewUrl);
+
+    return () => {
+      URL.revokeObjectURL(previewUrl);
+    };
+  }, [avatarFile]);
+
+  function selectAvatar(file: File | null) {
+    setError(null);
+    setNotice(null);
+
+    if (!file) {
+      return;
+    }
+
+    if (!avatarMimeExtensions[file.type]) {
+      setError("Upload a JPG, PNG, or WebP profile image.");
+      return;
+    }
+
+    if (file.size > MAX_AVATAR_BYTES) {
+      setError("Profile image must be 2 MB or smaller.");
+      return;
+    }
+
+    setAvatarFile(file);
+  }
+
+  async function getAvatarAuthHeaders() {
+    if (!supabase) {
+      throw new Error("Supabase is not configured.");
+    }
+
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError || !session) {
+      throw new Error("No Supabase session found. Refresh and try again.");
+    }
+
+    return { Authorization: `Bearer ${session.access_token}` };
+  }
+
+  async function removeStoredAvatar(url: string | null) {
+    if (!url) {
+      return;
+    }
+
+    await fetch("/api/profile/avatar", {
+      method: "DELETE",
+      headers: {
+        ...(await getAvatarAuthHeaders()),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ avatarUrl: url }),
+    });
+  }
+
+  async function uploadAvatar() {
+    if (!avatarFile) {
+      return form.avatar_url.trim() || null;
+    }
+
+    const body = new FormData();
+    body.append("file", avatarFile);
+    body.append("eventId", eventRecord.id);
+
+    const response = await fetch("/api/profile/avatar", {
+      method: "POST",
+      headers: await getAvatarAuthHeaders(),
+      body,
+    });
+    const payload = (await response.json().catch(() => ({}))) as { avatar_url?: string; error?: string };
+
+    if (!response.ok || !payload.avatar_url) {
+      throw new Error(payload.error ?? "Could not upload profile image.");
+    }
+
+    return payload.avatar_url;
+  }
 
   async function extractProfile() {
     setIsExtracting(true);
@@ -287,12 +385,16 @@ export function OnboardingForm({
         throw new Error("No Supabase session found. Refresh and try again.");
       }
 
+      const previousAvatarUrl = profile?.avatar_url ?? null;
+      const nextAvatarUrl = await uploadAvatar();
+
       const payload = {
         event_id: eventRecord.id,
         user_id: user.id,
         name: form.name.trim(),
         email: form.email.trim() || null,
         linkedin_url: form.linkedin_url.trim() || null,
+        avatar_url: nextAvatarUrl,
         headline: form.headline.trim() || null,
         bio: form.bio.trim() || null,
         skills: form.skills,
@@ -316,6 +418,9 @@ export function OnboardingForm({
       }
 
       setProfile(data as Profile);
+      if (previousAvatarUrl && previousAvatarUrl !== nextAvatarUrl) {
+        void removeStoredAvatar(previousAvatarUrl);
+      }
       await captureClientEvent(profile ? "player_card_updated" : "player_card_created", { eventSlug });
       router.replace(`/e/${eventSlug}/board`);
       router.refresh();
@@ -325,6 +430,12 @@ export function OnboardingForm({
       setIsSaving(false);
     }
   }
+
+  const avatarPreviewProfile = {
+    name: form.name.trim() || "Player",
+    avatar_url: avatarPreviewUrl ?? (form.avatar_url.trim() || null),
+  };
+  const hasAvatar = Boolean(avatarFile || form.avatar_url);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_0.72fr]">
@@ -354,6 +465,47 @@ export function OnboardingForm({
         ) : null}
 
         <fieldset disabled={isLoading || isSaving || isReadOnlyDemo} className="mt-5 grid gap-4 disabled:opacity-70 md:grid-cols-2">
+          <div className="md:col-span-2 flex flex-wrap items-center gap-4 rounded-md border border-white/10 bg-white/[0.035] p-4">
+            <ProfileAvatar profile={avatarPreviewProfile} size="lg" />
+            <div className="min-w-0 flex-1">
+              <span className="text-sm font-semibold text-zinc-300">Profile image</span>
+              <p className="mt-1 text-sm text-zinc-500">JPG, PNG, or WebP. Max 2 MB.</p>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(inputEvent) => selectAvatar(inputEvent.target.files?.[0] ?? null)}
+                className="hidden"
+              />
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="focus-ring inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-sm font-bold text-white hover:bg-white/[0.1]"
+                >
+                  <ImagePlus className="h-4 w-4" aria-hidden="true" />
+                  {hasAvatar ? "Change image" : "Add image"}
+                </button>
+                {hasAvatar ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAvatarFile(null);
+                      setForm((current) => ({ ...current, avatar_url: "" }));
+                      if (avatarInputRef.current) {
+                        avatarInputRef.current.value = "";
+                      }
+                    }}
+                    className="focus-ring inline-flex items-center gap-2 rounded-md border border-boot-400/25 bg-boot-400/10 px-3 py-2 text-sm font-bold text-boot-400 hover:bg-boot-400/15"
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    Remove
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
           <label className="block">
             <span className="text-sm font-semibold text-zinc-300">Name</span>
             <input

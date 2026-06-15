@@ -62,11 +62,13 @@ NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 1. Create a Supabase project.
 2. Enable anonymous sign-ins in Auth.
 3. Apply `supabase/migrations/001_initial_schema.sql`.
-4. Add the Supabase public URL and anon key to Vercel.
+4. Apply `supabase/migrations/002_profile_avatar_storage.sql` to create the public `profile-avatars` storage bucket and owner-scoped upload/delete policies.
+5. Add the Supabase public URL, anon key, and server-only service-role key to Vercel.
 
 The migration creates the schema, enables RLS, creates the `public_profiles` view so public pages do not expose profile emails, adds the atomic `decide_join_request` RPC, and seeds `world-cup-hack` with 8 players, 3 ideas, and 2 teams.
 
-Normal profile, idea, team, board, and join-request flows use the Supabase anon key plus RLS. The service-role key is only for server-only integration hooks such as webhook/email logging.
+Normal profile, idea, team, board, and join-request flows use the Supabase anon key plus RLS. The service-role key is only for server-only integration hooks such as webhook/email logging and the authenticated profile-image upload route.
+Profile images are stored in Supabase Storage under `profile-avatars/[event_id]/[auth_user_id]/...`; public pages only read the resulting image URL.
 
 ## Main Routes
 
@@ -82,6 +84,7 @@ Normal profile, idea, team, board, and join-request flows use the Supabase anon 
 ## API Routes
 
 - `POST /api/profile/extract`: parses pasted text or multipart resume uploads into an editable draft; LinkedIn URLs are never scraped.
+- `POST /api/profile/avatar`: verifies the current Supabase session and uploads a JPG/PNG/WebP profile image to Storage.
 - `POST /api/scout/recommendations`: returns deterministic profile/team recommendations, optionally polished by Nemotron.
 - `POST /api/email/team-formed`: sends or logs team intro emails through Resend.
 - `POST /api/stripe/checkout`: creates a test-mode organizer checkout session when Stripe is configured.

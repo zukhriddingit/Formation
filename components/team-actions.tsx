@@ -18,7 +18,7 @@ export function TeamActions({
   function requestTransfer() {
     track(ANALYTICS_EVENTS.JOIN_REQUEST_SENT, { event_slug: eventSlug, team_id: teamId, direction: "player_to_team" });
     setRequested(true);
-    setMessage("Transfer request sent to the club captain.");
+    setMessage("Join request sent to the team owner.");
   }
 
   async function sendIntro() {
@@ -48,7 +48,7 @@ export function TeamActions({
         className="focus-ring inline-flex items-center gap-2 rounded-md bg-pitch-500 px-4 py-3 text-sm font-black text-pitch-950 hover:bg-pitch-100 disabled:cursor-default disabled:opacity-80"
       >
         {requested ? <Check className="h-4 w-4" aria-hidden="true" /> : <Send className="h-4 w-4" aria-hidden="true" />}
-        {requested ? "Transfer requested" : "Request transfer"}
+        {requested ? "Join requested" : "Request to join"}
       </button>
       <button
         type="button"

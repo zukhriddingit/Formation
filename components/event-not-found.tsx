@@ -9,7 +9,7 @@ export function EventNotFound({ slug }: { slug: string }) {
           <SearchX className="h-7 w-7" aria-hidden="true" />
         </div>
         <p className="mt-6 text-xs font-black uppercase tracking-[0.18em] text-zinc-500">Event not found</p>
-        <h1 className="mt-3 text-4xl font-black text-white">No transfer window for `{slug}`</h1>
+        <h1 className="mt-3 text-4xl font-black text-white">No event board for `{slug}`</h1>
         <p className="mt-4 text-base leading-7 text-zinc-400">
           Check the QR code or event link. The demo event is available at World Cup Hack.
         </p>

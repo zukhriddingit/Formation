@@ -1,13 +1,13 @@
 # Formation
 
-Formation is the live transfer market for hackathon team formation. Participants scan a real QR code, get an anonymous Supabase session, create a player card, pitch ideas as clubs, form teams, and manage transfer requests from the board.
+Formation is the live workspace for hackathon team formation. Participants scan a real QR code, sign in with email or continue as guests, create a player card, pitch ideas, form teams, and manage join requests from the board.
 
-The merged app includes the core team flow plus the teammate intelligence/growth layer: scout recommendations, profile extraction hooks, share pages, admin funnel polish, guarded Resend/Stripe/PostHog integrations, and NVIDIA Nemotron fallbacks.
+The merged app includes the core team flow plus the teammate intelligence/growth layer: scout recommendations, resume/profile extraction hooks, share pages, admin funnel polish, guarded Resend/Stripe/PostHog integrations, NVIDIA Nemotron fallbacks, light/dark mode, and email/password login.
 
 ## Stack
 
 - Next.js App Router, TypeScript, Tailwind CSS
-- Supabase auth, database, anonymous sign-in, RLS, and atomic join-request RPC
+- Supabase auth, database, email/password login, anonymous guest sign-in, RLS, and atomic join-request RPC
 - Deterministic scout scoring with optional NVIDIA Nemotron polish
 - Resend, Stripe, and PostHog integration hooks with safe demo/no-op behavior
 - Server-side QR SVG generation with `qrcode`
@@ -60,7 +60,7 @@ NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 ## Supabase
 
 1. Create a Supabase project.
-2. Enable anonymous sign-ins in Auth.
+2. Enable email/password auth and anonymous sign-ins in Auth.
 3. Apply `supabase/migrations/001_initial_schema.sql`.
 4. Apply `supabase/migrations/002_profile_avatar_storage.sql` to create the public `profile-avatars` storage bucket and owner-scoped upload/delete policies.
 5. Apply `supabase/migrations/003_event_ownership.sql` to add organizer ownership for created events.
@@ -68,12 +68,13 @@ NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 
 The migration creates the schema, enables RLS, creates the `public_profiles` view so public pages do not expose profile emails, adds the atomic `decide_join_request` RPC, and seeds `world-cup-hack` with 8 players, 3 ideas, and 2 teams.
 
-Normal profile, idea, team, board, and join-request flows use the Supabase anon key plus RLS. The service-role key is only for server-only integration hooks such as webhook/email logging and the authenticated profile-image upload route.
+Normal profile, idea, team, board, auth, and join-request flows use the Supabase anon key plus RLS. The service-role key is only for server-only integration hooks such as webhook/email logging and the authenticated profile-image upload route.
 Profile images are stored in Supabase Storage under `profile-avatars/[event_id]/[auth_user_id]/...`; public pages only read the resulting image URL.
 
 ## Main Routes
 
 - `/e/[slug]` event desk and QR destination
+- `/login` email/password sign in, sign up, reset email, and guest entry
 - `/organize` create a new event-specific Formation board
 - `/e/[slug]/onboard` create or edit the current user's player card
 - `/e/[slug]/board` players, ideas, teams, filters, create flows, and join requests
@@ -96,7 +97,7 @@ Profile images are stored in Supabase Storage under `profile-avatars/[event_id]/
 ## Demo Test Flow
 
 1. Visit `/e/world-cup-hack`.
-2. Anonymous auth signs in and routes new users to onboarding.
+2. Sign in with email/password or continue as a guest; new users route to onboarding.
 3. Save a player card.
 4. Create an idea and a team from the board.
 5. In another browser/session, create a second player card and request to join.
@@ -112,6 +113,14 @@ Run before shipping:
 ./node_modules/.bin/tsc --noEmit
 ./node_modules/.bin/next build
 ```
+
+## Completed in This Pass
+
+- Added a persistent light/dark theme toggle with system-default initialization.
+- Replaced the green-heavy visual palette with a more professional blue/slate foundation.
+- Added `/login` with email/password sign in, account creation, password reset email, and guest continuation.
+- Added account status/sign-out controls to the main app surfaces.
+- Refreshed public copy from heavy transfer/club language toward event/team workspace language.
 
 ## Remaining TODOs
 

@@ -32,7 +32,7 @@ export function TeamCard({
       </div>
 
       <h3 className="mt-4 text-lg font-black text-white">{team.name}</h3>
-      <p className="mt-2 text-sm leading-6 text-zinc-300">{team.tagline ?? idea?.one_liner ?? "Open club on the board."}</p>
+      <p className="mt-2 text-sm leading-6 text-zinc-300">{team.tagline ?? idea?.one_liner ?? "Open team on the board."}</p>
 
       <div className="mt-5 flex flex-wrap gap-2">
         {team.roles_needed.length > 0 ? (

@@ -59,7 +59,7 @@ export function PlayerCard({
           ) : (
             <>
               <ShieldCheck className="h-3.5 w-3.5 text-trophy-400" aria-hidden="true" />
-              Club captain
+              Team owner
             </>
           )}
         </span>

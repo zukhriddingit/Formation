@@ -11,10 +11,10 @@ export function profileShareUrl(eventSlug: string, profileId: string) {
 }
 
 export function teamShareText(team: Pick<Team, "name">) {
-  return `I just signed with ${team.name} on Formation — forming hackathon teams like a transfer market.`;
+  return `I just joined ${team.name} on Formation - forming a hackathon team in one shared workspace.`;
 }
 
 export function profileShareText(profile: Pick<Profile, "name" | "headline">) {
   const role = profile.headline ? ` (${profile.headline})` : "";
-  return `${profile.name}${role} is on the Formation transfer board — scouting a hackathon squad like a soccer club.`;
+  return `${profile.name}${role} is on the Formation team board - looking for the right hackathon squad.`;
 }

@@ -49,7 +49,7 @@ export function ScoutPanel({
 
   function handleRequestJoin(rec: ScoutRecommendation) {
     track(ANALYTICS_EVENTS.JOIN_REQUEST_SENT, { event_slug: eventSlug, mode, target_type: rec.type, direction: "player_to_team" });
-    setActedOn((current) => ({ ...current, [rec.id]: "Request sent to the club" }));
+    setActedOn((current) => ({ ...current, [rec.id]: "Request sent to the team" }));
   }
 
   function handleInvite(rec: ScoutRecommendation) {
@@ -79,7 +79,7 @@ export function ScoutPanel({
 
       {recommendations.length === 0 ? (
         <p className="mt-5 rounded-md border border-dashed border-white/15 bg-white/[0.03] px-4 py-6 text-center text-sm text-zinc-400">
-          No matches yet — they&apos;ll appear as more players and clubs join the board.
+          No matches yet - they&apos;ll appear as more players and teams join the board.
         </p>
       ) : (
         <ol className="mt-5 space-y-3">
@@ -167,7 +167,7 @@ export function ScoutPanel({
                         href={teamHref}
                         className="focus-ring inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-bold text-white hover:bg-white/[0.1]"
                       >
-                        View club
+                        View team
                         <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
                       </Link>
                     </>
@@ -180,7 +180,7 @@ export function ScoutPanel({
                           className="focus-ring inline-flex items-center gap-1.5 rounded-md bg-pitch-500 px-3 py-2 text-xs font-black text-pitch-950 hover:bg-pitch-100"
                         >
                           <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
-                          Invite to club
+                          Invite to team
                         </button>
                       ) : null}
                       <Link

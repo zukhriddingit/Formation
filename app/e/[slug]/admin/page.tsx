@@ -14,6 +14,7 @@ import Link from "next/link";
 import { AdminCheckoutButton } from "@/components/admin-checkout-button";
 import { CopyButton } from "@/components/copy-button";
 import { EventNotFound } from "@/components/event-not-found";
+import { NavActions } from "@/components/nav-actions";
 import { PremiumFeatures } from "@/components/premium-features";
 import { QrCode } from "@/components/qr-code";
 import { StatCard } from "@/components/stat-card";
@@ -64,10 +65,13 @@ export default async function AdminPage({
   return (
     <main className="min-h-screen px-6 py-6 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-7xl">
-        <Link href={`/e/${slug}`} className="focus-ring inline-flex items-center gap-2 rounded-md text-sm font-bold text-zinc-300 hover:text-white">
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Event desk
-        </Link>
+        <nav className="flex items-center justify-between gap-4">
+          <Link href={`/e/${slug}`} className="focus-ring inline-flex items-center gap-2 rounded-md text-sm font-bold text-zinc-300 hover:text-white">
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            Event desk
+          </Link>
+          <NavActions />
+        </nav>
 
         <header className="grid gap-6 py-10 lg:grid-cols-[1fr_420px]">
           <div>
@@ -77,7 +81,7 @@ export default async function AdminPage({
             </p>
             <h1 className="mt-5 text-4xl font-black text-white sm:text-6xl">{board.event.name} command center</h1>
             <p className="mt-4 max-w-2xl text-lg leading-8 text-zinc-300">
-              Monitor the transfer window, spot unbalanced teams, and unlock premium organizer tools through Stripe test mode.
+              Monitor event activity, spot teams missing roles, and unlock premium organizer tools through Stripe test mode.
             </p>
           </div>
           <div className="rounded-lg border border-white/10 bg-zinc-950/75 p-5 shadow-glow">
@@ -94,9 +98,9 @@ export default async function AdminPage({
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Players" value={stats.players} detail={`${stats.looking} still available`} icon={UsersRound} />
-          <StatCard label="Teams" value={stats.clubs} detail={`${stats.openTeams} forming clubs`} icon={ShieldCheck} />
+          <StatCard label="Teams" value={stats.clubs} detail={`${stats.openTeams} forming teams`} icon={ShieldCheck} />
           <StatCard label="Open positions" value={stats.openPositions} detail="Recruiting gaps to close" icon={ChartNoAxesCombined} />
-          <StatCard label="Teams formed" value={funnel.teamsFormed} detail="Clubs past a solo founder" icon={Mail} />
+          <StatCard label="Teams formed" value={funnel.teamsFormed} detail="Groups past a solo founder" icon={Mail} />
         </section>
 
         <section className="mt-8 rounded-lg border border-white/10 bg-white/[0.045] p-5">
@@ -218,7 +222,7 @@ export default async function AdminPage({
                   );
                 })
               ) : (
-                <p className="text-sm text-zinc-400">No clubs on the board yet.</p>
+                <p className="text-sm text-zinc-400">No teams on the board yet.</p>
               )}
             </div>
           </div>

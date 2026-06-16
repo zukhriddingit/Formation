@@ -154,7 +154,7 @@ export function PremiumFeatures({
               </div>
             </div>
           ) : (
-            <p className="mt-2 text-sm text-zinc-400">Role demand, fill rates, and balance gaps across every club.</p>
+            <p className="mt-2 text-sm text-zinc-400">Role demand, fill rates, and balance gaps across every team.</p>
           )}
         </div>
 

@@ -545,7 +545,7 @@ export function OnboardingForm({
               value={form.headline}
               onChange={(inputEvent) => setForm((current) => ({ ...current, headline: inputEvent.target.value }))}
               className="focus-ring mt-2 w-full rounded-md border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-white"
-              placeholder="Full-stack captain who ships polished demos"
+              placeholder="Full-stack builder who ships polished demos"
             />
           </label>
 

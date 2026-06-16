@@ -4,6 +4,7 @@ import { ArrowLeft, BrainCircuit, CheckCircle2, Loader2, MessageSquare, Send, Sh
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
+import { NavActions } from "@/components/nav-actions";
 import { PlayerCard } from "@/components/player-card";
 import { ProfileAvatar } from "@/components/profile-avatar";
 import { RoleBadge } from "@/components/role-badge";
@@ -129,7 +130,7 @@ export function TeamPageClient({
 
   async function requestToJoin() {
     if (!supabase || !team || !currentProfile) {
-      setError("Create your player card before requesting a transfer.");
+      setError("Create your player card before requesting to join.");
       return;
     }
 
@@ -160,7 +161,7 @@ export function TeamPageClient({
 
       setShowRequestForm(false);
       setRequestMessage("");
-      setNotice("Transfer request sent.");
+      setNotice("Join request sent.");
       await captureClientEvent("join_request_created", { eventSlug, teamId: team.id });
       await refreshTeam();
     } catch (requestError) {
@@ -189,7 +190,7 @@ export function TeamPageClient({
         throw rpcError;
       }
 
-      setNotice(decision === "accepted" ? "Player added to the roster." : "Transfer request rejected.");
+      setNotice(decision === "accepted" ? "Player added to the roster." : "Join request rejected.");
       await captureClientEvent("join_request_decided", { eventSlug, teamId, decision });
       await refreshTeam();
     } catch (decisionError) {
@@ -205,10 +206,10 @@ export function TeamPageClient({
         <div className="mx-auto max-w-4xl">
           <Link href={`/e/${eventSlug}/board`} className="focus-ring inline-flex items-center gap-2 rounded-md text-sm font-bold text-zinc-300 hover:text-white">
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            Transfer board
+            Team board
           </Link>
           <div className="mt-10">
-            <EmptyState icon={Trophy} title="Team not found" description="This club may have been removed from the transfer board." />
+            <EmptyState icon={Trophy} title="Team not found" description="This team may have been removed from the board." />
           </div>
         </div>
       </main>
@@ -221,9 +222,12 @@ export function TeamPageClient({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link href={`/e/${eventSlug}/board`} className="focus-ring inline-flex items-center gap-2 rounded-md text-sm font-bold text-zinc-300 hover:text-white">
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            Transfer board
+            Team board
           </Link>
-          {isLoading ? <Loader2 className="h-5 w-5 animate-spin text-pitch-100" aria-hidden="true" /> : null}
+          <div className="flex items-center gap-2">
+            {isLoading ? <Loader2 className="h-5 w-5 animate-spin text-pitch-100" aria-hidden="true" /> : null}
+            <NavActions />
+          </div>
         </div>
 
         {error ? <p className="mt-4 rounded-md border border-boot-400/30 bg-boot-400/10 p-3 text-sm text-boot-400">{error}</p> : null}
@@ -234,7 +238,7 @@ export function TeamPageClient({
             <div className="flex flex-wrap items-center gap-3">
               <p className="inline-flex items-center gap-2 rounded-md border border-trophy-400/30 bg-trophy-400/10 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-trophy-100">
                 <Trophy className="h-4 w-4" aria-hidden="true" />
-                Club page
+                Team page
               </p>
               <VibeBadge vibe={team.vibe} />
               {isFormed ? (
@@ -246,7 +250,7 @@ export function TeamPageClient({
             </div>
             <h1 className="mt-5 text-4xl font-black text-white sm:text-6xl">{team.name}</h1>
             <p className="mt-4 max-w-3xl text-lg leading-8 text-zinc-300">
-              {team.tagline ?? idea?.one_liner ?? "This club is forming its match-day roster."}
+              {team.tagline ?? idea?.one_liner ?? "This team is forming its hackathon roster."}
             </p>
             <div className="mt-7 flex flex-wrap gap-2">
               {team.roles_needed.length > 0 ? team.roles_needed.map((role) => <RoleBadge key={role}>{role}</RoleBadge>) : <span className="text-sm text-zinc-500">No open roles posted.</span>}
@@ -256,7 +260,7 @@ export function TeamPageClient({
               {isOwner ? (
                 <p className="inline-flex items-center gap-2 text-sm font-semibold text-trophy-100">
                   <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-                  You captain this club.
+                  You own this team.
                 </p>
               ) : isMember ? (
                 <p className="inline-flex items-center gap-2 text-sm font-semibold text-pitch-100">
@@ -264,7 +268,7 @@ export function TeamPageClient({
                   You are signed to this roster.
                 </p>
               ) : pendingRequest ? (
-                <p className="text-sm font-semibold text-trophy-100">Your transfer request is pending.</p>
+                <p className="text-sm font-semibold text-trophy-100">Your join request is pending.</p>
               ) : requestClosedLabel ? (
                 <p className="text-sm font-semibold text-zinc-400">{requestClosedLabel}</p>
               ) : currentProfile ? (
@@ -286,7 +290,7 @@ export function TeamPageClient({
                         onChange={(event) => setRequestMessage(event.target.value)}
                         rows={3}
                         className="focus-ring w-full resize-none rounded-md border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-white"
-                        placeholder="Optional note to the captain"
+                        placeholder="Optional note to the team owner"
                       />
                       <div className="flex flex-wrap gap-2">
                         <button
@@ -311,7 +315,7 @@ export function TeamPageClient({
                 </div>
               ) : (
                 <Link href={`/e/${eventSlug}/onboard`} className="focus-ring inline-flex rounded-md bg-pitch-500 px-4 py-3 text-sm font-black text-pitch-950 hover:bg-pitch-100">
-                  Create player card to request transfer
+                  Create player card to request join
                 </Link>
               )}
             </div>
@@ -345,7 +349,7 @@ export function TeamPageClient({
               {members.length > 0 ? (
                 members.map(({ profile }) => <PlayerCard key={profile.id} profile={profile} compact />)
               ) : (
-                <EmptyState icon={UsersRound} title="No one signed yet" description="The captain is still recruiting this club's first players." />
+                <EmptyState icon={UsersRound} title="No one signed yet" description="The owner is still recruiting this team's first members." />
               )}
             </div>
 
@@ -395,7 +399,7 @@ export function TeamPageClient({
                       );
                     })
                   ) : (
-                    <EmptyState icon={MessageSquare} title="No pending requests" description="Transfer requests for your club appear here." />
+                    <EmptyState icon={MessageSquare} title="No pending requests" description="Join requests for your team appear here." />
                   )}
                 </div>
               </div>

@@ -1,5 +1,6 @@
 import { ArrowLeft, QrCode, Radio, Share2, UsersRound } from "lucide-react";
 import Link from "next/link";
+import { NavActions } from "@/components/nav-actions";
 import { OrganizeEventForm } from "@/components/organize-event-form";
 
 export const dynamic = "force-dynamic";
@@ -8,20 +9,23 @@ export default function OrganizePage() {
   return (
     <main className="min-h-screen px-6 py-6 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-6xl">
-        <Link href="/" className="focus-ring inline-flex items-center gap-2 rounded-md text-sm font-bold text-zinc-300 hover:text-white">
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Formation
-        </Link>
+        <nav className="flex items-center justify-between gap-4">
+          <Link href="/" className="focus-ring inline-flex items-center gap-2 rounded-md text-sm font-bold text-zinc-300 hover:text-white">
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            Formation
+          </Link>
+          <NavActions />
+        </nav>
 
         <section className="grid gap-8 py-10 lg:grid-cols-[1fr_480px] lg:items-start">
           <div>
             <p className="inline-flex items-center gap-2 rounded-md border border-trophy-400/30 bg-trophy-400/10 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-trophy-100">
               <Radio className="h-4 w-4" aria-hidden="true" />
-              Open the transfer window
+              Organizer workspace
             </p>
             <h1 className="mt-5 max-w-4xl text-5xl font-black leading-[1.02] text-white sm:text-7xl">Launch a Formation board</h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-zinc-300">
-              Create a dedicated event link, send it to participants, and watch player cards, clubs, teams, and join requests update live.
+              Create a dedicated event link, send it to participants, and watch profiles, ideas, teams, and join requests update live.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-3">

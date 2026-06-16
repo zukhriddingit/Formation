@@ -44,7 +44,7 @@ type TeamFormState = {
 
 const tabs: Array<{ key: TabKey; label: string; icon: typeof UsersRound }> = [
   { key: "players", label: "Players", icon: UsersRound },
-  { key: "clubs", label: "Clubs / ideas", icon: Lightbulb },
+  { key: "clubs", label: "Ideas", icon: Lightbulb },
   { key: "teams", label: "Teams", icon: Trophy },
 ];
 
@@ -234,7 +234,7 @@ export function BoardTabs({ board }: { board: EventBoard }) {
 
       setIdeaForm(emptyIdeaForm);
       setShowIdeaForm(false);
-      setNotice("Idea posted to the club market.");
+      setNotice("Idea posted to the board.");
       await captureClientEvent("idea_created", { eventSlug: boardState.event.slug });
       await refreshBoard();
     } catch (createError) {
@@ -248,7 +248,7 @@ export function BoardTabs({ board }: { board: EventBoard }) {
     setActive("teams");
     setShowTeamForm(true);
     setTeamForm({
-      name: `${idea.title} FC`,
+      name: `${idea.title} Team`,
       tagline: idea.one_liner,
       vibe: idea.vibe ?? "trying-to-win",
       roles_needed: idea.roles_needed,
@@ -324,7 +324,7 @@ export function BoardTabs({ board }: { board: EventBoard }) {
     setNotice(null);
 
     if (!supabase || !currentProfile) {
-      setError("Create your player card before requesting a transfer.");
+      setError("Create your player card before requesting to join.");
       return;
     }
 
@@ -360,7 +360,7 @@ export function BoardTabs({ board }: { board: EventBoard }) {
 
       setRequestingTeamId(null);
       setRequestMessages((current) => ({ ...current, [team.id]: "" }));
-      setNotice(`Transfer request sent to ${team.name}.`);
+      setNotice(`Join request sent to ${team.name}.`);
       await captureClientEvent("join_request_created", { eventSlug: boardState.event.slug, teamId: team.id });
       await refreshBoard();
     } catch (requestError) {
@@ -375,7 +375,7 @@ export function BoardTabs({ board }: { board: EventBoard }) {
     const lockedLabel = team.status !== "forming" ? "Roster locked" : memberCount >= team.max_size ? "Team full" : null;
 
     if (currentProfile && team.owner_profile_id === currentProfile.id) {
-      return <p className="text-sm text-zinc-400">You captain this club.</p>;
+      return <p className="text-sm text-zinc-400">You own this team.</p>;
     }
 
     if (currentProfile && isTeamMember(boardState, team.id, currentProfile.id)) {
@@ -390,7 +390,7 @@ export function BoardTabs({ board }: { board: EventBoard }) {
     const pendingRequest = pendingRequestForTeam(boardState, team.id, currentProfile?.id);
 
     if (pendingRequest) {
-      return <p className="text-sm font-semibold text-trophy-100">Pending transfer request sent.</p>;
+      return <p className="text-sm font-semibold text-trophy-100">Join request pending.</p>;
     }
 
     if (lockedLabel) {
@@ -403,7 +403,7 @@ export function BoardTabs({ board }: { board: EventBoard }) {
           href={`/e/${boardState.event.slug}/onboard`}
           className="focus-ring inline-flex w-full items-center justify-center rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-sm font-bold text-white hover:bg-white/[0.1]"
         >
-          Create card to request transfer
+          Create card to request join
         </Link>
       );
     }
@@ -429,7 +429,7 @@ export function BoardTabs({ board }: { board: EventBoard }) {
           onChange={(inputEvent) => setRequestMessages((current) => ({ ...current, [team.id]: inputEvent.target.value }))}
           rows={3}
           className="focus-ring w-full resize-none rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white"
-          placeholder="Optional note to the captain"
+          placeholder="Optional note to the team owner"
         />
         <div className="flex gap-2">
           <button
@@ -553,7 +553,7 @@ export function BoardTabs({ board }: { board: EventBoard }) {
         <div className="mt-6">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-2xl font-black text-white">Club ideas</h2>
+              <h2 className="text-2xl font-black text-white">Ideas</h2>
               <p className="mt-1 text-sm text-zinc-400">Pitch an idea, then recruit the positions you need.</p>
             </div>
             {currentProfile ? (
@@ -656,14 +656,14 @@ export function BoardTabs({ board }: { board: EventBoard }) {
                     ) : associatedTeam ? (
                       <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3">{renderRequestControl(associatedTeam)}</div>
                     ) : (
-                      <p className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm text-zinc-400">No club has formed around this idea yet.</p>
+                      <p className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm text-zinc-400">No team has formed around this idea yet.</p>
                     )}
                   </div>
                 );
               })
             ) : (
               <div className="md:col-span-2 xl:col-span-3">
-                <EmptyState icon={Lightbulb} title="No clubs recruiting yet" description="Ideas show up here when captains post what they want to build." />
+                <EmptyState icon={Lightbulb} title="No ideas posted yet" description="Ideas show up here when participants post what they want to build." />
               </div>
             )}
           </div>
@@ -675,7 +675,7 @@ export function BoardTabs({ board }: { board: EventBoard }) {
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-2xl font-black text-white">Teams</h2>
-              <p className="mt-1 text-sm text-zinc-400">Create a club, fill the missing roles, and lock the roster.</p>
+              <p className="mt-1 text-sm text-zinc-400">Create a team, fill the missing roles, and finalize the roster.</p>
             </div>
             {currentProfile ? (
               <button
@@ -784,7 +784,7 @@ export function BoardTabs({ board }: { board: EventBoard }) {
               ))
             ) : (
               <div className="md:col-span-2 xl:col-span-3">
-                <EmptyState icon={Trophy} title="No teams formed yet" description="Teams appear once players start signing with clubs." />
+                <EmptyState icon={Trophy} title="No teams formed yet" description="Teams appear once participants start joining groups." />
               </div>
             )}
           </div>

@@ -5,6 +5,29 @@
 :root {
   color-scheme: dark;
   --font-geist-sans: "Inter";
+  --page-bg: #070b14;
+  --page-bg-soft: #0f172a;
+  --page-text: #f8fafc;
+  --selection-bg: rgba(96, 165, 250, 0.34);
+  --selection-text: #ffffff;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --page-bg: #f6f8fb;
+  --page-bg-soft: #ffffff;
+  --page-text: #0f172a;
+  --selection-bg: rgba(37, 99, 235, 0.18);
+  --selection-text: #0f172a;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page-bg: #070b14;
+  --page-bg-soft: #0f172a;
+  --page-text: #f8fafc;
+  --selection-bg: rgba(96, 165, 250, 0.34);
+  --selection-text: #ffffff;
 }
 
 * {
@@ -13,16 +36,16 @@
 
 html {
   min-height: 100%;
-  background: #070808;
+  background: var(--page-bg);
 }
 
 body {
   min-height: 100%;
   margin: 0;
   background:
-    linear-gradient(135deg, rgba(49, 197, 111, 0.08), transparent 34%),
-    linear-gradient(180deg, #101313 0%, #070808 52%, #0a0d0b 100%);
-  color: #f6f7f4;
+    radial-gradient(circle at top left, rgba(96, 165, 250, 0.14), transparent 34rem),
+    linear-gradient(180deg, var(--page-bg-soft) 0%, var(--page-bg) 54%, #080d18 100%);
+  color: var(--page-text);
   font-family: var(--font-geist-sans), Inter, system-ui, sans-serif;
 }
 
@@ -39,8 +62,8 @@ select {
 }
 
 ::selection {
-  background: rgba(245, 198, 79, 0.34);
-  color: #ffffff;
+  background: var(--selection-bg);
+  color: var(--selection-text);
 }
 
 .stadium-grid {
@@ -52,4 +75,76 @@ select {
 
 .focus-ring {
   @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pitch-500 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-950;
+}
+
+:root[data-theme="light"] body {
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.1), transparent 34rem),
+    linear-gradient(180deg, #ffffff 0%, #f6f8fb 54%, #eef2f7 100%);
+}
+
+:root[data-theme="light"] .stadium-grid {
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.045) 1px, transparent 1px);
+}
+
+:root[data-theme="light"] .focus-ring {
+  @apply focus-visible:ring-pitch-600 focus-visible:ring-offset-white;
+}
+
+:root[data-theme="light"] .text-white {
+  color: #0f172a;
+}
+
+:root[data-theme="light"] .text-zinc-200,
+:root[data-theme="light"] .text-zinc-300 {
+  color: #334155;
+}
+
+:root[data-theme="light"] .text-zinc-400 {
+  color: #475569;
+}
+
+:root[data-theme="light"] .text-zinc-500 {
+  color: #64748b;
+}
+
+:root[data-theme="light"] .text-pitch-100 {
+  color: #1d4ed8;
+}
+
+:root[data-theme="light"] .text-trophy-100 {
+  color: #92400e;
+}
+
+:root[data-theme="light"] .border-white\/10,
+:root[data-theme="light"] .border-white\/12,
+:root[data-theme="light"] .border-white\/15,
+:root[data-theme="light"] .border-white\/30 {
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+:root[data-theme="light"] .bg-zinc-950\/75,
+:root[data-theme="light"] .bg-zinc-950\/70,
+:root[data-theme="light"] .bg-zinc-950\/60,
+:root[data-theme="light"] .bg-ink-950,
+:root[data-theme="light"] .bg-ink-950\/75,
+:root[data-theme="light"] .bg-ink-950\/60 {
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+:root[data-theme="light"] .bg-white\/\[0\.03\],
+:root[data-theme="light"] .bg-white\/\[0\.035\],
+:root[data-theme="light"] .bg-white\/\[0\.04\],
+:root[data-theme="light"] .bg-white\/\[0\.045\],
+:root[data-theme="light"] .bg-white\/\[0\.05\],
+:root[data-theme="light"] .bg-white\/\[0\.06\],
+:root[data-theme="light"] .bg-white\/\[0\.08\],
+:root[data-theme="light"] .bg-white\/\[0\.1\] {
+  background-color: rgba(255, 255, 255, 0.72);
+}
+
+:root[data-theme="light"] .shadow-glow {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 24px 70px rgba(15, 23, 42, 0.1);
 }

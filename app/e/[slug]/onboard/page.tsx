@@ -1,6 +1,7 @@
 import { ArrowLeft, IdCard } from "lucide-react";
 import Link from "next/link";
 import { EventNotFound } from "@/components/event-not-found";
+import { NavActions } from "@/components/nav-actions";
 import { OnboardingForm } from "@/components/onboarding-form";
 import { getEventBoard } from "@/lib/data";
 
@@ -21,10 +22,13 @@ export default async function OnboardPage({
   return (
     <main className="min-h-screen px-6 py-6 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-6xl">
-        <Link href={`/e/${slug}`} className="focus-ring inline-flex items-center gap-2 rounded-md text-sm font-bold text-zinc-300 hover:text-white">
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Event desk
-        </Link>
+        <nav className="flex items-center justify-between gap-4">
+          <Link href={`/e/${slug}`} className="focus-ring inline-flex items-center gap-2 rounded-md text-sm font-bold text-zinc-300 hover:text-white">
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            Event desk
+          </Link>
+          <NavActions />
+        </nav>
         <header className="py-10">
           <p className="inline-flex items-center gap-2 rounded-md border border-pitch-500/25 bg-pitch-500/10 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-pitch-100">
             <IdCard className="h-4 w-4" aria-hidden="true" />
@@ -32,7 +36,7 @@ export default async function OnboardPage({
           </p>
           <h1 className="mt-5 text-4xl font-black text-white sm:text-6xl">Join {board.event.name}</h1>
           <p className="mt-4 max-w-2xl text-lg leading-8 text-zinc-300">
-            Post your positions, vibe, and build interests so the scout can match you with the right club.
+            Post your skills, vibe, and build interests so teammates can find the right fit.
           </p>
         </header>
         <OnboardingForm eventSlug={slug} initialEvent={board.event} />

@@ -1,5 +1,6 @@
 import { ArrowRight, BrainCircuit, CalendarPlus, ChartNoAxesCombined, QrCode, ShieldCheck, Trophy, UsersRound } from "lucide-react";
 import Link from "next/link";
+import { NavActions } from "@/components/nav-actions";
 import { PlayerCard } from "@/components/player-card";
 import { TeamCard } from "@/components/team-card";
 import { demoEventBoard } from "@/lib/demo-data";
@@ -30,6 +31,7 @@ export default function HomePage() {
               Demo
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
+            <NavActions />
           </div>
         </nav>
 
@@ -37,11 +39,11 @@ export default function HomePage() {
           <div className="max-w-4xl">
             <p className="inline-flex items-center gap-2 rounded-md border border-trophy-400/30 bg-trophy-400/10 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-trophy-100">
               <Trophy className="h-4 w-4" aria-hidden="true" />
-              Live hackathon transfer market
+              Hackathon team workspace
             </p>
             <h1 className="mt-6 text-5xl font-black leading-[1.02] text-white sm:text-7xl lg:text-8xl">Formation</h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-300 sm:text-xl">
-              Participants scan a QR code, create a player card, pitch ideas as clubs, and use the scout to form balanced teams while the transfer window is still hot.
+              Participants scan a QR code, create a player profile, pitch ideas, and form balanced hackathon teams from one live event board.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
@@ -55,7 +57,7 @@ export default function HomePage() {
                 href="/e/world-cup-hack"
                 className="focus-ring inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.06] px-5 py-3 text-sm font-bold text-white hover:bg-white/[0.1]"
               >
-                Enter World Cup Hack
+                Join World Cup Hack
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
               <Link
@@ -71,13 +73,13 @@ export default function HomePage() {
           <div className="mt-12 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
             <div className="rounded-lg border border-white/10 bg-zinc-950/75 p-4 shadow-glow">
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">Transfer desk</p>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">Event desk</p>
                 <span className="rounded-md bg-pitch-500/10 px-2 py-1 text-xs font-bold text-pitch-100">Live</span>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 {[
                   ["Players", demoEventBoard.profiles.length],
-                  ["Clubs", demoEventBoard.teams.length],
+                  ["Teams", demoEventBoard.teams.length],
                   ["Open slots", 8],
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-md border border-white/10 bg-white/[0.04] p-3">
@@ -103,12 +105,12 @@ export default function HomePage() {
           {[
             {
               title: "QR onboarding",
-              body: "Anonymous Supabase sessions keep the first scan low-friction.",
+              body: "Guest mode keeps first scans fast, while email accounts support returning organizers and teammates.",
               icon: QrCode,
             },
             {
               title: "Player cards",
-              body: "Profiles capture positions, skills, vibe, and what each player wants to build.",
+              body: "Profiles capture skills, roles, vibe, and what each participant wants to build.",
               icon: ShieldCheck,
             },
             {

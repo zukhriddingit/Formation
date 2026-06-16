@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EventNotFound } from "@/components/event-not-found";
+import { NavActions } from "@/components/nav-actions";
 import { PlayerCard } from "@/components/player-card";
 import { ProfileAvatar } from "@/components/profile-avatar";
 import { ScoutPanel } from "@/components/scout-panel";
@@ -32,7 +33,7 @@ export async function generateMetadata({
   }
 
   const title = `${profile.name} · ${board.event.name} · Formation`;
-  const description = profile.headline ?? `${profile.name} is on the Formation transfer board.`;
+  const description = profile.headline ?? `${profile.name} is on the Formation team board.`;
   const url = profileShareUrl(slug, profileId);
 
   return {
@@ -67,10 +68,13 @@ export default async function ProfilePage({
   return (
     <main className="min-h-screen px-6 py-6 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-5xl">
-        <Link href={`/e/${slug}/board`} className="focus-ring inline-flex items-center gap-2 rounded-md text-sm font-bold text-zinc-300 hover:text-white">
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Transfer board
-        </Link>
+        <nav className="flex items-center justify-between gap-4">
+          <Link href={`/e/${slug}/board`} className="focus-ring inline-flex items-center gap-2 rounded-md text-sm font-bold text-zinc-300 hover:text-white">
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            Team board
+          </Link>
+          <NavActions />
+        </nav>
 
         <header className="py-10">
           <p className="inline-flex items-center gap-2 rounded-md border border-pitch-500/25 bg-pitch-500/10 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-pitch-100">

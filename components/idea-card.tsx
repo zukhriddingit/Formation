@@ -43,7 +43,7 @@ export function IdeaCard({
       </div>
 
       <div className="mt-5 border-t border-white/10 pt-4 text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
-        Club owner: {owner?.name ?? "Unassigned"}
+        Idea owner: {owner?.name ?? "Unassigned"}
       </div>
     </article>
   );

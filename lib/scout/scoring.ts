@@ -6,8 +6,8 @@
  * rules. (An optional Nemotron pass can *polish* the reason wording elsewhere.)
  *
  * Three modes, all built from the same scoring primitives:
- *   - players_for_team    → rank free agents for a club
- *   - teams_for_player    → rank clubs for a player
+ *   - players_for_team    -> rank free agents for a team
+ *   - teams_for_player    -> rank teams for a player
  *   - teammates_for_player→ rank complementary players for a player
  */
 import type { EventBoard, Idea, Profile, ScoutRecommendation, Team, Vibe } from "@/lib/types";
@@ -73,7 +73,7 @@ export type PlayerSignals = {
 };
 
 // --------------------------------------------------------------------------
-// players_for_team: rank a candidate player for a given club
+// players_for_team: rank a candidate player for a given team
 // --------------------------------------------------------------------------
 export function scoreProfileForTeam(
   profile: Profile,
@@ -111,14 +111,14 @@ export function scoreProfileForTeam(
   }
   if (profile.looking_for_team) {
     score += 12;
-    reasons.push("Available in the transfer window");
+    reasons.push("Available for a team");
   }
   if (openSlots > 0) {
     score += Math.min(openSlots * 5, 15);
   }
   if (relation === "same") {
     score += 18;
-    reasons.push(`Same ${profile.vibe} vibe as the club`);
+    reasons.push(`Same ${profile.vibe} vibe as the team`);
   } else if (relation === "ally") {
     score += 9;
     reasons.push(`Compatible ${profile.vibe} energy`);
@@ -128,13 +128,13 @@ export function scoreProfileForTeam(
   }
   if (alreadyOnAnyTeam) {
     score -= 22;
-    reasons.push("Already signed to another club");
+    reasons.push("Already signed to another team");
   }
   if (teamFull) {
     score -= 28;
   }
   if (reasons.length === 0) {
-    reasons.push("Broad skill overlap with this club");
+    reasons.push("Broad skill overlap with this team");
   }
 
   return {
@@ -151,7 +151,7 @@ export function scoreProfileForTeam(
 }
 
 // --------------------------------------------------------------------------
-// teams_for_player: rank a club for a given player (or onboarding draft)
+// teams_for_player: rank a team for a given player (or onboarding draft)
 // --------------------------------------------------------------------------
 export function scoreTeamForPlayer(
   team: Team,
@@ -184,7 +184,7 @@ export function scoreTeamForPlayer(
   }
   if (sharedInterests.length > 0) {
     score += Math.min(sharedInterests.length * 7, 21);
-    reasons.push(`Building in ${sharedInterests.slice(0, 2).join(", ")} — your space`);
+    reasons.push(`Building in ${sharedInterests.slice(0, 2).join(", ")} - your space`);
   }
   if (openSlots > 0) {
     score += Math.min(openSlots * 5, 15);
@@ -213,7 +213,7 @@ export function scoreTeamForPlayer(
     id: team.id,
     score: clamp(score),
     title: team.name,
-    subtitle: team.tagline ?? idea?.one_liner ?? "Open club",
+    subtitle: team.tagline ?? idea?.one_liner ?? "Open team",
     reasons,
     matched_skills: uniqueStrings(matchedSkills).slice(0, 6),
     missing_role_fit: uniqueStrings(missingRoleFit).slice(0, 4),
@@ -260,7 +260,7 @@ export function scoreTeammateForPlayer(
   }
   if (candidate.looking_for_team) {
     score += 12;
-    reasons.push("Looking for a club right now");
+    reasons.push("Looking for a team right now");
   } else {
     score -= 8;
   }
@@ -276,7 +276,7 @@ export function scoreTeammateForPlayer(
   }
   if (candidateOnAnyTeam) {
     score -= 22;
-    reasons.push("Already signed to another club");
+    reasons.push("Already signed to another team");
   }
   if (reasons.length === 0) {
     reasons.push("Rounds out your lineup");
@@ -327,7 +327,7 @@ export function recommendProfilesForTeam(board: EventBoard, teamId: string, limi
   const idea = ideaForTeam(board, team);
   const memberCount = memberCountOf(board, teamId);
   const currentMemberIds = new Set(board.team_members.filter((m) => m.team_id === teamId).map((m) => m.profile_id));
-  // Never recommend a club's own captain as a signing for that club (robust even
+  // Never recommend a team's own owner as a signing for that team (robust even
   // if the CRUD layer hasn't inserted the owner into team_members yet).
   currentMemberIds.add(team.owner_profile_id);
 
@@ -353,7 +353,7 @@ export function recommendTeamsForProfile(board: EventBoard, profileId: string, l
   return sortRecommendations(recs).slice(0, limit);
 }
 
-/** Used by onboarding to preview matching clubs from an unsaved draft. */
+/** Used by onboarding to preview matching teams from an unsaved draft. */
 export function recommendTeamsForSignals(board: EventBoard, player: PlayerSignals, limit = 3): ScoutRecommendation[] {
   const recs = board.teams.map((team) =>
     scoreTeamForPlayer(team, ideaForTeam(board, team), player, memberCountOf(board, team.id)),

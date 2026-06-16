@@ -1,4 +1,4 @@
-import { SearchX } from "lucide-react";
+import { CalendarPlus, SearchX } from "lucide-react";
 import Link from "next/link";
 
 export function EventNotFound({ slug }: { slug: string }) {
@@ -13,12 +13,21 @@ export function EventNotFound({ slug }: { slug: string }) {
         <p className="mt-4 text-base leading-7 text-zinc-400">
           Check the QR code or event link. The demo event is available at World Cup Hack.
         </p>
-        <Link
-          href="/e/world-cup-hack"
-          className="focus-ring mt-8 inline-flex rounded-md bg-pitch-500 px-5 py-3 text-sm font-black text-pitch-950 hover:bg-pitch-100"
-        >
-          Open demo event
-        </Link>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link
+            href="/organize"
+            className="focus-ring inline-flex items-center gap-2 rounded-md bg-pitch-500 px-5 py-3 text-sm font-black text-pitch-950 hover:bg-pitch-100"
+          >
+            Create event
+            <CalendarPlus className="h-4 w-4" aria-hidden="true" />
+          </Link>
+          <Link
+            href="/e/world-cup-hack"
+            className="focus-ring inline-flex rounded-md border border-white/10 bg-white/[0.06] px-5 py-3 text-sm font-bold text-white hover:bg-white/[0.1]"
+          >
+            Open demo event
+          </Link>
+        </div>
       </section>
     </main>
   );

@@ -20,7 +20,7 @@ cp .env.example .env.local
 pnpm dev
 ```
 
-Open `http://localhost:3000/e/world-cup-hack`.
+Open `http://localhost:3000/e/world-cup-hack` for the demo event, or `http://localhost:3000/organize` to create a new event board.
 
 If `pnpm` is unavailable but dependencies are already installed, checks can run through local binaries:
 
@@ -63,7 +63,8 @@ NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 2. Enable anonymous sign-ins in Auth.
 3. Apply `supabase/migrations/001_initial_schema.sql`.
 4. Apply `supabase/migrations/002_profile_avatar_storage.sql` to create the public `profile-avatars` storage bucket and owner-scoped upload/delete policies.
-5. Add the Supabase public URL, anon key, and server-only service-role key to Vercel.
+5. Apply `supabase/migrations/003_event_ownership.sql` to add organizer ownership for created events.
+6. Add the Supabase public URL, anon key, and server-only service-role key to Vercel.
 
 The migration creates the schema, enables RLS, creates the `public_profiles` view so public pages do not expose profile emails, adds the atomic `decide_join_request` RPC, and seeds `world-cup-hack` with 8 players, 3 ideas, and 2 teams.
 
@@ -73,6 +74,7 @@ Profile images are stored in Supabase Storage under `profile-avatars/[event_id]/
 ## Main Routes
 
 - `/e/[slug]` event desk and QR destination
+- `/organize` create a new event-specific Formation board
 - `/e/[slug]/onboard` create or edit the current user's player card
 - `/e/[slug]/board` players, ideas, teams, filters, create flows, and join requests
 - `/e/[slug]/teams/[teamId]` team page, roster, owner pending requests, accept/reject controls
@@ -83,6 +85,7 @@ Profile images are stored in Supabase Storage under `profile-avatars/[event_id]/
 
 ## API Routes
 
+- `POST /api/events/create`: verifies the current Supabase session and creates a new event board for organizers.
 - `POST /api/profile/extract`: parses pasted text or multipart resume uploads into an editable draft; LinkedIn URLs are never scraped.
 - `POST /api/profile/avatar`: verifies the current Supabase session and uploads a JPG/PNG/WebP profile image to Storage.
 - `POST /api/scout/recommendations`: returns deterministic profile/team recommendations, optionally polished by Nemotron.

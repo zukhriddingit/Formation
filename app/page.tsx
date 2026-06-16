@@ -1,4 +1,4 @@
-import { ArrowRight, BrainCircuit, ChartNoAxesCombined, QrCode, ShieldCheck, Trophy, UsersRound } from "lucide-react";
+import { ArrowRight, BrainCircuit, CalendarPlus, ChartNoAxesCombined, QrCode, ShieldCheck, Trophy, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { PlayerCard } from "@/components/player-card";
 import { TeamCard } from "@/components/team-card";
@@ -15,13 +15,22 @@ export default function HomePage() {
           <Link href="/" className="focus-ring rounded-md text-xl font-black tracking-wide text-white">
             Formation
           </Link>
-          <Link
-            href="/e/world-cup-hack"
-            className="focus-ring inline-flex items-center gap-2 rounded-md bg-pitch-500 px-4 py-2 text-sm font-black text-pitch-950 hover:bg-pitch-100"
-          >
-            Open demo
-            <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/organize"
+              className="focus-ring inline-flex items-center gap-2 rounded-md bg-pitch-500 px-4 py-2 text-sm font-black text-pitch-950 hover:bg-pitch-100"
+            >
+              Create event
+              <CalendarPlus className="h-4 w-4" aria-hidden="true" />
+            </Link>
+            <Link
+              href="/e/world-cup-hack"
+              className="focus-ring hidden items-center gap-2 rounded-md border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-bold text-white hover:bg-white/[0.1] sm:inline-flex"
+            >
+              Demo
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
         </nav>
 
         <div className="mx-auto flex min-h-[82vh] max-w-7xl flex-col justify-center py-16">
@@ -36,8 +45,15 @@ export default function HomePage() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                href="/e/world-cup-hack"
+                href="/organize"
                 className="focus-ring inline-flex items-center gap-2 rounded-md bg-pitch-500 px-5 py-3 text-sm font-black text-pitch-950 hover:bg-pitch-100"
+              >
+                Create your event
+                <CalendarPlus className="h-4 w-4" aria-hidden="true" />
+              </Link>
+              <Link
+                href="/e/world-cup-hack"
+                className="focus-ring inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.06] px-5 py-3 text-sm font-bold text-white hover:bg-white/[0.1]"
               >
                 Enter World Cup Hack
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />

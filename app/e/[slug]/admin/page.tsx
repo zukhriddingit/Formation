@@ -137,13 +137,17 @@ export default async function AdminPage({
               <h2 className="text-xl font-black text-white">Event QR &amp; link</h2>
             </div>
             <div className="mt-5 grid gap-4 sm:grid-cols-[140px_1fr]">
-              <QrCode value={eventUrl} size={140} className="overflow-hidden rounded-lg border border-white/10 bg-white p-2" />
+              <div className="flex h-[140px] w-[140px] items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white p-2">
+                <QrCode value={eventUrl} size={124} className="flex h-[124px] w-[124px] items-center justify-center" />
+              </div>
               <div className="min-w-0">
                 <p className="break-all rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-zinc-300">{eventUrl}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <CopyButton value={eventUrl} className="px-2.5 py-1.5 text-xs" />
                   <Link
                     href={`/e/${slug}/board`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="focus-ring inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.06] px-2.5 py-1.5 text-xs font-bold text-white hover:bg-white/[0.1]"
                   >
                     Open board

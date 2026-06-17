@@ -64,7 +64,11 @@ NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 3. Apply `supabase/migrations/001_initial_schema.sql`.
 4. Apply `supabase/migrations/002_profile_avatar_storage.sql` to create the public `profile-avatars` storage bucket and owner-scoped upload/delete policies.
 5. Apply `supabase/migrations/003_event_ownership.sql` to add organizer ownership for created events.
-6. Add the Supabase public URL, anon key, and server-only service-role key to Vercel.
+6. In Supabase Auth URL Configuration, set the Site URL to your production app, for example `https://formation-mu-beryl.vercel.app`.
+7. Add redirect URLs for production and local development:
+   - `https://formation-mu-beryl.vercel.app/**`
+   - `http://localhost:3000/**`
+8. Add the Supabase public URL, anon key, and server-only service-role key to Vercel.
 
 The migration creates the schema, enables RLS, creates the `public_profiles` view so public pages do not expose profile emails, adds the atomic `decide_join_request` RPC, and seeds `world-cup-hack` with 8 players, 3 ideas, and 2 teams.
 

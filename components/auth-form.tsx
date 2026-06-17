@@ -16,15 +16,25 @@ function safeNext(value: string | null) {
   return value;
 }
 
+function authRedirectUrl(nextPath: string) {
+  const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+  const browserOrigin = window.location.origin;
+  const origin = configuredOrigin && !configuredOrigin.includes("localhost") ? configuredOrigin : browserOrigin;
+  const url = new URL("/auth/callback", origin);
+  url.searchParams.set("next", nextPath);
+  return url.toString();
+}
+
 export function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = useMemo(() => safeNext(searchParams.get("next")), [searchParams]);
+  const callbackError = searchParams.get("error");
   const [mode, setMode] = useState<AuthMode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(callbackError);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function replaceAnonymousSessionIfNeeded() {
@@ -61,7 +71,7 @@ export function AuthForm() {
 
       if (mode === "reset") {
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/login?next=${encodeURIComponent(nextPath)}`,
+          redirectTo: authRedirectUrl(`/login?next=${encodeURIComponent(nextPath)}`),
         });
 
         if (resetError) {
@@ -93,7 +103,7 @@ export function AuthForm() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}${nextPath}`,
+          emailRedirectTo: authRedirectUrl(nextPath),
         },
       });
 
